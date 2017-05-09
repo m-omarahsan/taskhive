@@ -8,13 +8,19 @@ Clients and service providers can manually create a new, edit or modify
 an existing contract template to suit their liking. To get started, the 
 client is equipped with several basic fill-in-the-blanks contracts, and 
 optionally a contract wizard that helps choose which contract is right 
-for a task, and populate it with the necessary information. Templates
+for a task, and populate it with the necessary information.
+
+Templates
+---------
 
 Contracts templates are available for a wide variety of purposes. 
 Contract Renegotiations
 
 Contracts can be renegotiated after agreement, assuming both parties key 
-sign an amended contract. Unforeseen Circumstances
+sign an amended contract. 
+
+Unforeseen Circumstances
+------------------------
 
 Since available payment methods may change over time, only the base 
 currency is binding in an offer, not the accepted payment methods.
