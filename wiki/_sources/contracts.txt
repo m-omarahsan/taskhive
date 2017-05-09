@@ -14,7 +14,9 @@ Templates
 ---------
 
 Contracts templates are available for a wide variety of purposes. 
+
 Contract Renegotiations
+-----------------------
 
 Contracts can be renegotiated after agreement, assuming both parties key 
 sign an amended contract. 
