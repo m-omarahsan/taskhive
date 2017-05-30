@@ -43,9 +43,9 @@
         ▒█▄▀▄█ ▒█░▒█ ▒█░▒█ ░▒█░░ ▄░ 
 ───────────────────────────────────────────────────────────────────────
 
-        Taskhive это мобильное и десктопное приложение для фрилансеров.
-        Оно делит рабочую нагрузку на отдельные задания для уменьшения 
-        недопониманий и обязательств.
+        Taskhive это мобильное и настольное приложение для фрилансеров.
+        Оно делит рабочую нагрузку на отдельные задачи для уменьшения 
+        недопониманий и задолженностей.
 
         The Taskhive магазин позволяет Вам покупать и продавать любые
         услуги, и оплачивать их любым удобным для вас способом, из
@@ -136,11 +136,11 @@
         Бесплатность
         ───────────────────────────────────────────────────────────────
 
-        Taskhive -- бесплатно(как воздух). There is no charge to do any
-        business on Taskhive. Ислючение это случаи когда условное
-        депонирование вовлечено в уменьшение финансовых рисков.
-        Но она устанавливается относительно рыночной стоимости 
-        предложенной самими агентами.
+        Taskhive -- бесплатно(как воздух). Нет никакой платы за
+        пользование Taskhive.
+        Ислючение это случаи когда условное депонирование вовлечено в
+        уменьшение финансовых рисков. Но она устанавливается относительно
+        рыночной стоимости редложенной самими агентами.
 
         Все затраты на разработку Taskhive полностью оплачиваются 
         щедрыми пожертвованиями третьих сторон и коллективом RZZT.
@@ -172,53 +172,51 @@
         правильно его пользьвателями путём прозрачнйо политики.
 
         Taskhive написанно с предположением что в конечном счёте оно
-        будет, and that the challenge to keep users safe will be
-        a neverending battle requiring constant vigilence.
+        будет, и задача по обеспечению безопасности пользователей - 
+        нескончаемая битва требующая постоянной бдительности.
 
 
 
-        Freedom
+        Свобода
         ───────────────────────────────────────────────────────────────
 
-        Centralized sites often bottleneck users into a preferred
-        payment method. This often creates issues of seizure, fraud,
-        censorship, and privacy invasion by overreaching and
-        too-big-to-care service providers.
-
-        Taskhive facilitates a truly free market with regards to
-        payments -- any payment method users are willing to trade
-        in will be supported.
-
+        Централизованные сайты часто принуждают пользователей к оплате
+        предпочтительными им методами. Это часто создаёт проблемы
+        ареста, обмана, цензуры, и вторжения в личную жизни провайдерами
+        превышающими свои полномочия и слишком большими для беспокойства.
+        Taskhive продвигает по-настоящему свободный рынок в отношении
+        платежей -- любой метод оплаты которым пользователи захотят
+        пользоваться будет поддерживаться.
 
 
-        Censoship-resistant
+
+        Цензуроустойчивость
         ───────────────────────────────────────────────────────────────
 
-        Censorship resistance is an important part of Taskhive's
-        freedom. It is the first freelancer network that allows its
-        users to decide for themselves what category of tasks they want
-        to offer services in, what payment methods they want to use,
-        and who and what services they want to trust, with no hard
-        moderation or accounts to ban.
+        Устойчивость цензуре одна из важнейших частей свободы Taskhive.
+        Это первая фрилансерская сеть которая позволяет её пользователям
+        решать самим, в какой категории задач они хотят прелагать свои
+        услуги, какой метод оплаты они хотят использовать,
+        и кому и какие услуги они хотят доверить, без жесткой
+        модерации и банящих аккаунтов.
 
-        The guessing work and bureaucracy is finally gone and the flood
-        gates of true free trade are open.
+        Работа наугад и бюрократия наконец-то исчезли и 
+        двери настоящей свободной торговли открыты.
         
 
 
-        Task-based
+        Основанность на задачах
         ───────────────────────────────────────────────────────────────
 
-        Taskhive is task-based, meaning you don't pay for mystery
-        hours or future promises -- you pay for the individual tasks
-        you need and nothing more. This makes communicating, switching
-        workers out, and reaching goals a simpler and less costly
-        process.
+        Taskhive основано на задачах, означает что вы не платити за 
+        часы или таинственные обещания -- вы платите за индивидуальные
+        задачи которые вам нужны и ничего более. Это делает процесс
+        общения, переназначение рабочих, достижение целей более дешевым
+        и простым процессом.
 
-        For workers who wish to continue using hourly rates, they may
-        do so by selling blocks of time as a task itself (e.g. 10 hours
-        of design work) as may be necessary for tasks with no clear
-        outcome.
+        Для работников желающих оставить почасовую оплату, имеется вариант
+        по продаже рабочего времени как задачи (т.е. 10 часов дизайнерской
+        работы) такой вариант подходит для заданий без чёткого исхода.
 
 
 
@@ -290,16 +288,16 @@
 
         Альфа-релиз Taskhive ожидается в 2017.
 
-        Since Taskhive will be empowering many citizens of the world
-        to reclaim their financial freedom through honest work, it is
-        imperative that it live up to its claims and not let its users
-        be subject to attack from oppressive regimes.
+        Поскольку Taskhive позволит многим гражданам мира
+        восстановить их финансовую свободу путём выполнения честного труда,
+        поэтому крайне важно чтобы оно соотвествовало их требованиям и не
+        позволяло пользователям подвергаться нападкам со стороны
+        угнетающих режимов.
 
-        Given the difficulties of forcing bug fixes in a truly
-        decentralized project, great care is being taken to allow for
-        backwards compatibility, rock-hard security, and to ensue that
-        all claims of privacy can be backed up with testing and proper
-        auditing.
+        Учитывая трудности связанные с продвижением багфиксов в понастоящему
+        децентрализованном проекте, большое внимание уделяется обратной 
+        совместимости, надёжной защите и обеспечению возможности резервного
+        копирования всех требований безопасности через тестирование и аудит.
 
         
 
@@ -361,7 +359,8 @@
 ║ Бесплатность     ║          │            │               │        │            ║
 ╟──────────────────╫──────────┼────────────┼───────────────┼────────┼────────────╢
 ║ Предоставляет    ║          │            │               │        │            ║
-║ optional escrow  ║          │            │               │        │            ║
+║ опциональное     ║          │            │               │        │            ║
+║ депонирование    ║          │            │               │        │            ║
 ╟──────────────────╫──────────┼────────────┼───────────────┼────────┼────────────╢
 ║                  ║          │            │               │        │            ║
 ╟──────────────────╫──────────┼────────────┼───────────────┼────────┼────────────╢
