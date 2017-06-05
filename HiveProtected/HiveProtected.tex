@@ -120,7 +120,7 @@ Initially a HPC should be created in the following manner:
 
 \subsection{Recommended Long-term Approach}
 
-Although it may seem desirable according to Taskhive's marketplace ethos to require all contracts to be negotiated, contractual freedom is a key aspect of a free market. It may be appealing to force negotiation (or at least the consideration of counter-offers on the basis that it would encourage compromise and lead to more contracts being successfully formed, this is paternalistic and contrary to the notion that individuals should be free to make their own economic decisions. The conclusion is that, over time, Taskhive should expand, and, in the long-term:
+Although it may seem desirable according to Taskhive's marketplace ethos to require all contracts to be negotiated, contractual freedom is a key aspect of a free market. It may be appealing to force negotiation (or at least the consideration of counter-offers) on the basis that it would encourage compromise and lead to more contracts being successfully formed, this is paternalistic and contrary to the notion that individuals should be free to make their own economic decisions. The conclusion is that, over time, Taskhive should expand, and, in the long-term:
 
 \begin{enumerate}
 	\item A user posting a task should be able to choose between making:
@@ -167,23 +167,23 @@ Traditionally it has been essential to the enforceability of a contract that its
 	\item for companies --- their full legal name and form, registration number, place of incorporation, and registered office address.
 \end{itemize}
 
-These details form a necessary interface between the parties and the court or tribunal adjudicating a contractual. In Taskhive, however, each user has a unique public key (which for all intents and purposes is analogous to a party's name) and each task has a set of unique electronic addresses by which users may communicate. While an individual or company may be identifiable from this if they, for example, list their public key on their website, this cannot be guaranteed because it would be contrary to Taskhive's basis of facilitating pseudonymity. As a result, public keys are generally useless to courts.
+These details form a necessary interface between the parties and the court or tribunal adjudicating a contractual dispute. In Taskhive, however, each user has a unique public key (which for all intents and purposes is analogous to a party's name) and each task has a set of unique electronic addresses by which users may communicate. While an individual or company may be identifiable from this if they, for example, list their public key on their website, this cannot be guaranteed because it would be contrary to Taskhive's basis of facilitating pseudonymity. As a result, public keys are generally useless to courts.
 
 Despite this, actions performed by a user within the Taskhive-HPC system can undeniably linked to that user's public key. Consequently, the public key will be sufficient to enforce the agreement when backed up by the mandatory escrow and arbitration provisions outlined below. While HPCs will not be enforceable in a court, they will be practically enforceable via the dispute resolution and anti-fraud measures of the Taskhive-HPC system.
 
 It is recommended that each party be described as `the Vendor' or `the Vendee' to avoid confusion. A public key is not particularly human-readable, so inserting each party's public key whenever they are referred to may lead to errors, especially on the part of the arbitrator. If a user is providing a service they should be identified throughout the document as `the Vendor'; the other party should be identified throughout the document as `the Vendee'.
 
-The proposed Parties module (\texttt{MODULE P}) would list the parties' public keys and task-specific addresses, and assign them human-readable names: either `the Vendor' or `the Vendee' depending on their role in the contract. The Vendor is the person providing a good or service, and the Vendee is the person receiving the good or service. In common terminology these might be called `seller' and `buyer' or `service provider' and `client' respectively, however `vendor' and `vendee' are broader terms for the parties in these sorts of relationships.
+The proposed Parties module would list the parties' public keys and task-specific addresses, and assign them human-readable names: either `the Vendor' or `the Vendee' depending on their role in the contract. The Vendor is the person providing a good or service, and the Vendee is the person receiving the good or service. In common terminology these might be called `seller' and `buyer' or `service provider' and `client' respectively, however `vendor' and `vendee' are broader terms for the parties in these sorts of relationships.
 
 \section{Interpretation}
 
-The proposed Interpretation module (\texttt{MODULE I}) defines key terms used frequently in the agreement, and is intended not to be editable by users. It also makes reference to the Interpretation Rules module (\texttt{MODULE IR}) which sets out the rules which parties and arbitrators are to use to interpret the agreement (this is covered in more detail below).
+The proposed Interpretation module defines key terms used frequently in the agreement, and is intended not to be editable by users. It also makes reference to the Interpretation Rules module which sets out the rules which parties and arbitrators are to use to interpret the agreement (this is covered in more detail below).
 
 \subsection{Definitions}
 
 A definitions clause is commonly included in contracts to ensure that words and phrases used in the agreement are interpreted consistently, rather than relying on context to determine the intended meaning. This is especially important where an ambiguous word is used, or where a word is used in an unusual sense. A definitions clause can be useful to refer readers to other relevant clauses if they are looking for how a word is defined.
 
-The proposed Interpretation module (\texttt{MODULE I}) would contain a fixed definitions clause to ensure that users with limited knowledge or understanding cannot erroneously change the effect of clauses dependent on those definitions. There are likely to be only a few terms which need to be defined in the definitions clause.
+The proposed Interpretation module would contain a fixed definitions clause to ensure that users with limited knowledge or understanding cannot erroneously change the effect of clauses dependent on those definitions. There are likely to be only a few terms which need to be defined in the definitions clause.
 
 \subsection{Governing Law}
 
@@ -249,7 +249,7 @@ English law and its derivatives (including American, Australian and Canadian law
 
 \section{Dispute Resolution}
 
-Dispute resolution provisions typically include a `forum selection clause' which establishes where a dispute is to adjudicated. This may be broad and allow a number of tribunals to determine a dispute, or it may be narrow and give a specific tribunal exclusive jurisdiction to hear claims. Forum selection clauses cover not only courts, but also arbitral tribunals. Parties may agree to arbitration in accordance with specified rules which are usually promulgated by one of a number of arbitration bodies such as the American Arbitration Association.
+Dispute resolution provisions typically include a `forum selection clause' which establishes where a dispute is to be adjudicated. This may be broad and allow a number of tribunals to determine a dispute, or it may be narrow and give a specific tribunal exclusive jurisdiction to hear claims. Forum selection clauses cover not only courts, but also arbitral tribunals. Parties may agree to arbitration in accordance with specified rules which are usually promulgated by one of a number of arbitration bodies such as the American Arbitration Association.
 
 HPCs will require a mandatory arbitration clause because the parties will usually be insufficiently identified to be able to bring court proceedings. Arbitration in regards to HPCs will be conducted by a Taskhive user agreed to by the parties in advance. The arbitrator may be selected by the parties based on reputation, cost and expertise, and will interpret the HPC in accordance with interpretation rules included in the agreement. Arbitrators' fees will be determined by negotiation and be incorporated into the agreement.
 
@@ -291,7 +291,7 @@ By contrast, non-exclusive licences can be granted to many people at the same ti
 
 Copyleft licences tend to be an exception to the rule that the more permissive a licence is the more the copyright owner will charge (although copyleft licences are not necessarily `free as in free beer'). `Copyleft' covers a broad range of non-exclusive licences, all of which permit significantly more rights to deal with a work than would be expected from ordinary licences of a comparable cost. It is worth noting that even if a work is licenced under a copyleft licence, this does not prevent a person from charging for that licence, nor does it prevent a person from granting other licences on different terms. For example: a software developer may offer their software under both a copyleft and commercial licence.
 
-Copyleft licences are associated with free and open-source software (`FOSS'; also `FLOSS' for `free/libre and open-source software') and free culture. Open-source licences include, inter alia, the MIT, BSD, GPL, AGPL and LGPL licences, and are predominantly (if not exclusively) used for software code. Creative Commons licences are popular and more suitable licences for non-software literary works, musical works, films, and so on.
+Copyleft licences are associated with free and open-source software (`FOSS'; also `FLOSS' for `free/libre and open-source software') and free culture. Open-source licences include, inter alia, the MIT Licence, BSD Licence, GPL, AGPL and LGPL, and are predominantly (if not exclusively) used for software code. Creative Commons licences are popular and more suitable licences for non-software literary works, musical works, films, and so on.
 
 Copyleft licences may be suitable where the value of the work to the vendee is not based on the ability to sell further licences. For example: an organisation may need a membership management system developed that allows them to sign up new members, renew existing memberships, and collect annual membership fees. The value of the software to the organisation is in having a usable system for managing members and fees. Whether other people use the system is not a concern, and the organisation may in fact benefit from ongoing development facilitated by the open source nature of the software. If the vendor wishes to release the software under an open-source licence, the vendee probably would not object.
 
@@ -325,7 +325,7 @@ A person who assigns or licences their copyright to another person, or who does 
 
 Some users may wish to prevent disclosure of the terms of the contract, to protect their reputations in the event that they agree to perform work of a certain nature. For example: a user may agree to work on a project of a religious, political or sexual nature with which they do not want to be publicly associated. Although broad, this is a simple variation of a non-disclosure clause (also called a `confidentiality clause' or `secrecy clause').
 
-Breach of a non-disclosure clause is usually remedied with damages and, if necessary, an injunction. However, because HPCs rely on escrow for awarding damages and breach of non-disclosure provisions may occur years after the contract has been substantially performed, it is impractical (and unfair) to require a party to lock up an amount in escrow for an indefinite period of timet. Similarly, enforcing injunctions via Taskhive is a conceptual challenge. Remedies for breaches of non-disclosure clauses will have to be handled using Taskhive's web-of-trust.
+Breach of a non-disclosure clause is usually remedied with damages and, if necessary, an injunction. However, because HPCs rely on escrow for awarding damages and breach of non-disclosure provisions may occur years after the contract has been substantially performed, it is impractical (and unfair) to require a party to lock up an amount in escrow for an indefinite period of time. Similarly, enforcing injunctions via Taskhive is a conceptual challenge. Remedies for breaches of non-disclosure clauses will have to be handled using Taskhive's web-of-trust.
 
 \section{Termination \& Penalties}
 
