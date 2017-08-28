@@ -7,50 +7,106 @@
 # https://bitmessage.org/wiki/API_Reference for API documentation
 
 import base64
-import configparser
+import datetime
 import json
 import os
 import sys
+import xml
+
+import psutil
 
 APPNAME = 'Taskhive'
-
+TASKHIVE_DIR = os.path.dirname(os.path.abspath(__file__))
+BITMESSAGE_DIR = os.path.join(TASKHIVE_DIR, 'bitmessage')
+BITMESSAGE_PROGRAM = os.path.join(BITMESSAGE_DIR, 'bitmessagemain.py')
 
 # Failure codes
-# 0 - Quitting voluntarily
-# 1 - Configuration information is missing
-# 2 - Can't connect to API
-# 3 - Can't find bitmessagemain.py
-class RaiseFailure(Exception):
+# 0 - quitting voluntarily
+# 1 - bitmessage folder missing
+# 2 - configuration information is missing
+# 3 - can not find bitmessagemain.py
+# 4 - now running our bitmessage daemon
+# 5 - our bitmessage is already running
+# 6 - bitmessage is already running from somewhere else
+# 7 - can not connect to API
+# 8 - 
+class ConversionFailure(Exception):
     def __init__(self, code, message):
         self.failure_message = message
-        self.failure_code = code    
+        self.failure_code = code
 
 
-class PassThrough(object):
+class ValueVerifier(object):
     def __init__(self, **kwargs):
         self.running = True
 
-    def Clean(self, _print=print):
+    def verify(self):
         while True:
             try:
-                value = self.convert(raw_value, **self.convert_kwargs)
+                value = self.convert(**self.convert_kwargs)
             except ConversionFailed as e:
-                return e.failure_message
+                return e.failure_message, e.failure_code
             else:
                 return value
 
 
-class Bitmessage(object):
-    #def verify_bitmessage():
-    #def run_bitmessage():
+class Taskhive(object):
+    def __init__(self):
+        self.bitmessage_process_dict = {}
 
-    def kill_bitmessage(self, error_number, reason):
+    def verify_bitmessage(self):
+        for process in psutil.process_iter():
+            if BITMESSAGE_PROGRAM in process.cmdline():
+                
+        for each in process.cmdline():
+            if each.find('bitmessagemain') == -1:
+                pass
+            else:
+                print(
+                raise ConversionFailure(5, "our bitmessage is already running")
+                raise ConversionFailure(6, "bitmessage is already running from somewhere else"
+                raise ConversionFailure(4, "now running our bitmessage daemon")
+
+    def run_bitmessage(self):
+        try:
+            if sys.platform.startswith('win'):
+                self.run_bm = subprocess.Popen(BITMESSAGE_PROGRAM),
+                                                  stdout=subprocess.PIPE,
+                                                  stderr=subprocess.PIPE,
+                                                  stdin=subprocess.PIPE,
+                                                  bufsize=0,
+                                                  cwd=TASKHIVE_DIR)
+            else:
+                self.run_bm = subprocess.Popen(BITMESSAGE_PROGRAM,
+                                                  stdout=subprocess.PIPE,
+                                                  stderr=subprocess.PIPE,
+                                                  stdin=subprocess.PIPE,
+                                                  bufsize=0,
+                                                  cwd=TASKHIVE_DIR,
+                                                  preexec_fn=os.setpgrp,
+                                                  close_fds=True)
+        except OSError:
+            raise ConversionFailure(3, "can not find bitmessagemain.py")
+
+    def kill_bitmessage(self):
+        
+
+    def shutdown_bitmessage(self):
         try:
             self.api.shutdown()
-        except(AttributeError, OSError, socket.error):
-            sys.exit(1)
+        except socket.error:
+            print('Socket Error')
+        except(AttributeError, OSError):
+            print('AttributeError / OSError')
+
+    # Tests the API connection to bitmessage.
+    # Returns True if it is connected.
+    def api_check(self):
+        result = self.api.add(2,3)
+        if result == 5:
+            return True
         else:
-            sys.exit(0)
+            return False
 
     def valid_address(self, address):
         address_information = json.loads(self.api.decodeAddress(address))
@@ -114,7 +170,6 @@ class Bitmessage(object):
     def list_add(self):
         json_load_addresses = json.loads(self.api.listAddresses())
         json_addresses = json_load_addresses['addresses']
-
         if not json_addresses:
             return False
         else:
@@ -140,7 +195,6 @@ class Bitmessage(object):
         json_load_addresses = json.loads(self.api.listAddresses())
         json_addresses = json_load_addresses['addresses']
         number_of_addresses = len(json_addresses['addresses'])
-
         if not json_addresses:
             return False
         else:
@@ -151,23 +205,16 @@ class Bitmessage(object):
                 else:
                     return delete_this
 
-    # With no arguments sent, send_message fills in the blanks
-    # subject and message must be encoded before they are passed
     def send_message(self, to_address, from_address, subject, message):
         # TODO - Was using .encode('UTF-8'), not needed?
         json_addresses = json.loads(self.api.listAddresses())
-        # Number of addresses
-        number_of_addresses = len(json_addresses['addresses'])
-
         if not self.valid_address(to_address):
             return 'invalid to address'
-
         if not self.valid_address(from_address):
             return 'invalid from address'
         else:
-            if from_address not in number_of_addresses:
-                return 'unsendable address'
-
+            if from_address not in json_addresses:
+                return 'not our address'
         subject = base64.b64encode(subject)
         message = base64.b64encode(message)
         ack_data = self.api.sendMessage(to_address, from_address, subject, message)
@@ -175,192 +222,73 @@ class Bitmessage(object):
         return sending_message
 
     def send_broadcast(self, from_address, subject, message):
-            if subject == '':
-                    subject = self.user_input('Enter your Subject.')
-                    subject = base64.b64encode(subject)
-            if message == '':
-                    message = self.user_input('Enter your Message.')
+        json_addresses = json.loads(self.api.listAddresses())
+        if not self.valid_address(from_address):
+            return 'invalid from address'
+        else:
+            if from_address not in json_addresses:
+                return 'not our address'
+        subject = base64.b64encode(subject)
+        message = base64.b64encode(message)
+        ack_data = self.api.sendBroadcast(from_address, subject, message)
+        sending_broadcast = self.api.getStatus(ack_data)
+        return sending_broadcast
 
-            add_attachment = self.user_input('Would you like to add an attachment, (Y)/(n)').lower()
-            if add_attachment in ['yes', 'y']:
-                message = message + '\n\n' + self.attachment()
-            message = base64.b64encode(message)
-
-            ack_data = self.api.sendBroadcast(from_address, subject, message)
-            sending_message = self.api.getStatus(ack_data)
-            # TODO - There are more statuses that should be paid attention to
-            if sending_message == 'broadcastqueued':
-                print('Broadcast is now in the queue')
-            else:
-                print(sending_message)
-        except socket.error:
-            self.bm_api_import = False
-            print('Couldn\'t send message due to an API connection issue')
-
-
-    # Lists the messages by: Message Number, To Address Label,
-    # From Address Label, Subject, Received Time
     def inbox(self, unread_only):
-        try:
-            inbox_messages = json.loads(self.api.getAllInboxMessages())
-        except socket.error:
-            self.bm_api_import = False
-            print('Couldn\'t access inbox due to an API connection issue')
-        else:        
-            total_messages = len(inbox_messages['inboxMessages'])
-            messages_printed = 0
-            messages_unread = 0
-            # processes all of the messages in the inbox
-            for each in range (0, total_messages):
-                message = inbox_messages['inboxMessages'][each]
-                # if we are displaying all messages or
-                # if this message is unread then display it
-                if not unread_only or not message['read']:
-                    print('-----------------------------------')
-                    # Message Number
-                    print('Message Number: {0}'.format(each))
-                    # Get the to address
-                    print('To: {0}'.format(message['toAddress']))
-                    # Get the from address
-                    print('From: {0}'.format(message['fromAddress']))
-                    # Get the subject
-                    print('Subject: {0}'.format(base64.b64decode(message['subject'])))
-                    print('Received: {0}'.format(datetime.datetime.fromtimestamp(float(message['receivedTime'])).strftime('%Y-%m-%d %H:%M:%S')))
-                    messages_printed += 1
-                    if not message['read']:
-                        messages_unread += 1
-            print('-----------------------------------')
-            print('There are {0:d} unread messages of {1:d} in the inbox.'.format(messages_unread, total_messages))
-            print('-----------------------------------')
-
+        json_messages = json.loads(self.api.getAllInboxMessages())
+        inbox_messages = json_messages['inboxMessages']
+        return inbox_messages
 
     def outbox(self):
-        try:
-            outbox_messages = json.loads(self.api.getAllSentMessages())
-            json_outbox = outbox_messages['sentMessages']
-            total_messages = len(json_outbox)
-            # processes all of the messages in the outbox
-            for each in range(0, total_messages):
-                print('-----------------------------------')
-                # Message Number
-                print('Message Number: {0}'.format(each))
-                # Get the to address
-                print('To: {0}'.format(json_outbox[each]['toAddress']))
-                # Get the from address
-                print('From: {0}'.format(json_outbox[each]['fromAddress']))
-                # Get the subject
-                print('Subject: {0}'.format(base64.b64decode(json_outbox[each]['subject'])))
-                # Get the subject
-                print('Status: {0}'.format(json_outbox[each]['status']))
-                last_action_time = datetime.datetime.fromtimestamp(float(json_outbox[each]['lastActionTime']))
-                print('Last Action Time: {0}'.format(last_action_time.strftime('%Y-%m-%d %H:%M:%S')))
-        except socket.error:
-            self.bm_api_import = False
-            print('Couldn\'t access outbox due to an API connection issue')
-        else:
-            print('-----------------------------------')
-            print('There are {0} messages in the outbox.'.format(total_messages))
-            print('-----------------------------------')
+        json_messages = json.loads(self.api.getAllSentMessages())
+        outbox_outbox = json_messages['sentMessages']
+        return json_outbox
 
-
-    # Opens a sent message for reading
     def read_sent_message(self, message_number):
-        try:
-            outbox_messages = json.loads(self.api.getAllSentMessages())
-            total_messages = len(outbox_messages['sentMessages'])
-            if message_number >= total_messages:
-                print('Invalid Message Number')
-                self.main()
+        outbox_messages = json.loads(self.api.getAllSentMessages())
+        total_messages = len(outbox_messages['sentMessages'])
+        if message_number >= total_messages:
+            return 'invalid message number'
+        else:
+            return base64.b64decode(outbox_messages['sentMessages'][message_number])
 
-            message = base64.b64decode(outbox_messages['sentMessages'][message_number]['message'])
-            self.detect_attachment(message)
-
-            # Get the to address
-            print('To: {0}'.format(outbox_messages['sentMessages'][message_number]['toAddress']))
-            # Get the from address
-            print('From: {0}'.format(outbox_messages['sentMessages'][message_number]['fromAddress']))
-            # Get the subject
-            print('Subject: {0}'.format(base64.b64decode(outbox_messages['sentMessages'][message_number]['subject'])))
-            #Get the status
-            print('Status: {0}'.format(outbox_messages['sentMessages'][message_number]['status']))
-            last_action_time = datetime.datetime.fromtimestamp(float(outbox_messages['sentMessages'][message_number]['lastActionTime']))
-            print('Last Action Time: {0}'.format(last_action_time.strftime('%Y-%m-%d %H:%M:%S')))
-            print('Message: {0}'.format(message))
-        except socket.error:
-            self.bm_api_import = False
-            print('Couldn\'t access outbox due to an API connection issue')
-
-
-    # Opens a message for reading
-    def read_message(self, message_number):
-        try:
-            inbox_messages = json.loads(self.api.getAllInboxMessages())
-            total_messages = len(inbox_messages['inboxMessages'])
-            if message_number >= total_messages:
-                print('Invalid Message Number.')
-                self.main()
-
-            message = base64.b64decode(inbox_messages['inboxMessages'][message_number]['message'])
-            self.detect_attachment(message)
-
-            # Get the to address
-            print('To: {0}'.format(inbox_messages['inboxMessages'][message_number]['toAddress']))
-            # Get the from address
-            print('From: {0}'.format(inbox_messages['inboxMessages'][message_number]['fromAddress']))
-            # Get the subject
-            print('Subject: {0}'.format(base64.b64decode(inbox_messages['inboxMessages'][message_number]['subject'])))
-
-            received_time = datetime.datetime.fromtimestamp(float(inbox_messages['inboxMessages'][message_number]['receivedTime']))
-            print('Received: {0}'.format(received_time.strftime('%Y-%m-%d %H:%M:%S')))
-            print('Message: {0}'.format(message))
-            return inbox_messages['inboxMessages'][message_number]['msgid']
-        except socket.error:
-            self.bm_api_import = False
-            print('Couldn\'t access inbox due to an API connection issue')
-
+    # Opens an inbox message for reading
+    def read_inbox_message(self, message_number):
+        inbox_messages = json.loads(self.api.getAllInboxMessages())
+        total_messages = len(inbox_messages['inboxMessages'])
+        if message_number >= total_messages:
+            return 'invalid message number'
+        else:
+            return base64.b64decode(inbox_messages['inboxMessages'][message_number])
 
     # Allows you to reply to the message you are currently on.
     # Saves typing in the addresses and subject.
     def reply_message(message_number, forward_or_reply):
-        try:
-            inboxMessages = json.loads(self.api.getAllInboxMessages())
-            # Address it was sent To, now the From address
-            from_address = inboxMessages['inboxMessages'][message_number]['toAddress']
-            # Message that you are replying to
-            message = base64.b64decode(inboxMessages['inboxMessages'][message_number]['message'])
-            subject = inboxMessages['inboxMessages'][message_number]['subject']
-            subject = base64.b64decode(subject)
-
-            if forward_or_reply == 'reply':
-                # Address it was From, now the To address
-                to_address = inboxMessages['inboxMessages'][message_number]['fromAddress']
-                subject = 'Re: {0}'.format(subject)
-            elif forward_or_reply == 'forward':
-                subject = 'Fwd: {0}'.format(subject)
-                while True:
-                    to_address = self.user_input('What is the To Address?')
-                    if not self.valid_address(to_address):
-                        print('Invalid Address. Please try again.')
-                    else:
-                        break
-            else:
-                print('Invalid Selection. Reply or Forward only')
-                return
-            subject = base64.b64encode(subject)
-            new_message = self.user_input('Enter your Message.')
-
-            add_attachment = self.user_input('Would you like to add an attachment, (Y)/(n)').lower()
-            if add_attachment in ['yes', 'y']:
-                new_message = new_message + '\n\n' + self.attachment()
-            new_message = new_message + '\n\n' + '-' * 55 + '\n'
-            new_message = new_message + message
-            new_message = base64.b64encode(new_message)
-
-            self.send_message(to_address, from_address, subject, new_message)
-        except socket.error:
-            self.bm_api_import = False
-            print('Couldn\'t send message due to an API connection issue')
-
+        inboxMessages = json.loads(self.api.getAllInboxMessages())
+        # Address it was sent To, now the From address
+        from_address = inboxMessages['inboxMessages'][message_number]['toAddress']
+        # Message that you are replying to
+        message = base64.b64decode(inboxMessages['inboxMessages'][message_number]['message'])
+        subject = inboxMessages['inboxMessages'][message_number]['subject']
+        subject = base64.b64decode(subject)
+        if forward_or_reply == 'reply':
+            # Address it was From, now the To address
+            to_address = inboxMessages['inboxMessages'][message_number]['fromAddress']
+            subject = 'Re: {0}'.format(subject)
+        elif forward_or_reply == 'forward':
+            subject = 'Fwd: {0}'.format(subject)
+            while True:
+                to_address = self.user_input('What is the To Address?')
+                if not self.valid_address(to_address):
+                    print('Invalid Address. Please try again.')
+                else:
+                    break
+        else:
+            print('Invalid Selection. Reply or Forward only')
+            return
+        subject = base64.b64encode(subject)
+        new_message = self.user_input('Enter your Message.')
+        self.send_message(to_address, from_address, subject, new_message)
 
     # Deletes a specified message from the outbox
     def delete_sent_message(self, message_number):
@@ -374,7 +302,6 @@ class Bitmessage(object):
         except socket.error:
             self.bm_api_import = False
             print('Couldn\'t delete message due to an API connection issue')
-
 
     def list_address_book(self):
         try:
@@ -394,7 +321,6 @@ class Bitmessage(object):
             self.bm_api_import = False
             print('Couldn\'t access address book due to an API connection issue')
 
-
     def add_address_book(self, address, label):
         try:
             response = self.api.addAddressBookEntry(address, base64.b64encode(label))
@@ -404,13 +330,11 @@ class Bitmessage(object):
             self.bm_api_import = False
             print('Couldn\'t add to address book due to an API connection issue')
 
-
     def get_api_error_code(self, response):
         if 'API Error' in response:
             # If we have an API error, return the number by getting
             # after the second space and removing the trailing colon
             return int(response.split()[2][:-1])
-
 
     def mark_message_read(self, message_id):
         try:
@@ -421,7 +345,6 @@ class Bitmessage(object):
             self.bm_api_import = False
             print('Couldn\'t mark message as read due to an API connection issue')
 
-
     def mark_message_unread(self, message_id):
         try:
             response = self.api.getInboxMessageByID(message_id, False)
@@ -430,7 +353,6 @@ class Bitmessage(object):
         except socket.error:
             self.bm_api_import = False
             print('Couldn\'t mark message as unread due to an API connection issue')
-
 
     def mark_all_messages_read(self):
         try:
@@ -442,7 +364,6 @@ class Bitmessage(object):
             self.bm_api_import = False
             print('Couldn\'t mark all messages read due to an API connection issue')
 
-
     def mark_all_messages_unread(self):
         try:
             inbox_messages = json.loads(self.api.getAllInboxMessages())['inboxMessages']
@@ -453,12 +374,10 @@ class Bitmessage(object):
             self.bm_api_import = False
             print('Couldn\'t mark all messages unread due to an API connection issue')
 
-
     def delete_inbox_messages(self):
         try:
             inbox_messages = json.loads(self.api.getAllInboxMessages())
             total_messages = len(inbox_messages['inboxMessages'])
-
             while True:
                 message_number = self.user_input('Enter the number of the message you wish to delete or (A)ll to empty the inbox.').lower()
                 try:
@@ -474,7 +393,6 @@ class Bitmessage(object):
                     print('Invalid input')
             # Prevent accidental deletion
             delete_verify = self.user_input('Are you sure, (Y)/(n)').lower()
-
             if delete_verify in ['yes', 'y']:
                 if message_number in ['all', 'a'] or int(message_number) == total_messages:
                     # Processes all of the messages in the inbox
@@ -489,7 +407,6 @@ class Bitmessage(object):
         except socket.error:
             self.bm_api_import = False
             print('Couldn\'t delete inbox message(s) due to an API connection issue')
-
 
     def add_info(self):
         try:
@@ -508,7 +425,6 @@ class Bitmessage(object):
             self.bm_api_import = False
             print('Couldn\'t display address information due to an API connection issue')
 
-
     def send_something(self):
         while True:
             send_which = self.user_input('Would you like to send a (M)essage or (B)roadcast?').lower()
@@ -521,7 +437,6 @@ class Bitmessage(object):
         elif send_which in ['broadcast', 'b']:
             self.send_broadcast('','','')
 
-
     def read_something(self):
         while True:
             read_which = self.user_input('Would you like to read a message from the (I)nbox or (O)utbox?').lower()
@@ -533,37 +448,30 @@ class Bitmessage(object):
             message_number = int(self.user_input('What is the number of the message you wish to open?'))
         except ValueError:
             print("That's not a whole number")
-
         if read_which in ['inbox', 'i']:
             print('Loading...')
             message_id = self.read_message(message_number)
-
             verify_unread = self.user_input('Would you like to keep this message unread, (Y)/(n)').lower()
             if verify_unread not in ['yes', 'y']:
                 self.mark_message_read(message_id)
-
             while True:
                 do_which = self.user_input('Would you like to (D)elete, (F)orward or (R)eply?').lower()
                 if do_which in ['reply','r','forward','f','delete','d','forward','f','reply','r']:
                     break
                 else:
                     print('Invalid input')
-
             if do_which in ['reply', 'r']:
                 print('Loading...')
                 self.reply_message(message_number,'reply')
-
             elif do_which in ['forward', 'f']:
                 print('Loading...')
                 self.reply_message(message_number,'forward')
-
             elif do_which in ['delete', 'd']:
                 # Prevent accidental deletion
                 verify_delete = self.user_input('Are you sure, (Y)/(n)').lower()
                 if verify_delete in ['yes', 'y']:
                     self.delete_message(message_number)
                     print('Message Deleted.')
- 
         elif read_which in ['outbox', 'o']:
             self.read_sent_message(message_number)
             # Gives the user the option to delete the message
@@ -571,11 +479,9 @@ class Bitmessage(object):
             if delete_this in ['yes', 'y']:
                 # Prevent accidental deletion
                 verify_delete = self.user_input('Are you sure, (Y)/(n)').lower()
-
                 if verify_delete in ['yes', 'y']:
                     self.delete_sent_message(message_number)
                     print('Message Deleted.')
-
 
     def save_message(self):
         while True:
@@ -586,22 +492,18 @@ class Bitmessage(object):
             message_number = int(self.user_input('What is the number of the message you wish to open?'))
         except ValueError:
             print("That's not a whole number")
-
         if which_box in ['inbox', 'i']:
             print('Loading...')
             message_id = self.read_message(message_number)
             keep_unread = self.user_input('Would you like to keep this message unread, (Y)/(n)').lower()
-
             if keep_unread not in ['yes', 'y']:
                 self.mark_message_read(message_id)
-
             while True:
                 message_options = self.user_input('Would you like to (D)elete, (F)orward or (R)eply?').lower()
                 if message_options in ['reply','r','forward','f','delete','d','forward','f','reply','r']:
                     break
                 else:
                     print('Invalid input')
-
             if message_options in ['reply', 'r']:
                 print('Loading...')
                 self.reply_message(message_number,'reply')
@@ -611,24 +513,19 @@ class Bitmessage(object):
             elif message_options in ['delete', 'd']:
                 # Prevent accidental deletion
                 verify_delete = self.user_input('Are you sure, (Y)/(n)').lower()
-
                 if verify_delete in ['yes', 'y']:
                     self.delete_message(message_number)
                     print('Message Deleted.')
- 
         elif which_box in ['outbox', 'o']:
             self.read_sent_message(message_number)
             # Gives the user the option to delete the message
             delete_message = self.user_input('Would you like to Delete this message, (Y)/(n)').lower()
-
             if delete_message in ['yes', 'y']:
                 # Prevent accidental deletion
                 verify_delete = self.user_input('Are you sure, (Y)/(n)').lower()
-
                 if verify_delete in ['yes', 'y']:
                     self.delete_sent_message(message_number)
                     print('Message Deleted.')
-
 
     def delete_message(self):
         try:
@@ -667,6 +564,59 @@ class Bitmessage(object):
             self.bm_api_import = False
             print('Couldn\'t access outbox due to an API connection issue')
 
+# Task requests and offers have an identical JSON array format, differing only in task_type.
+#   [{
+#   "task_data":{
+#   "task_type":"offer",
+#   "task_categories":[ A1, C4C1, F122, … ],
+#   "task_title":"Write a short story for my cat blog",
+#   "task_body":"I have a cat blog that needs a story written for it. I will pay for a story about cats.",
+#   "task_keywords":[ "cats", "blog", "writing"],
+#   "task_references":[ "URL1", "URL2", … ],
+#   "task_cost":"0.001",
+#   "task_currency":"BTC",
+#   "task_payment_rate_type":"task",
+#   "task_payment_methods":[ "BTC", "DOGE"],
+#   "task_deadline":1482710400,
+#   "task_license":"CC BY 4.0",
+#   "task_escrow_required":1,
+#   "task_escrow_recommendation":"BITCOIN-PUBKEY",
+#   "task_address":"TEMP-BM-ADDRESS",
+#   "task_owner":"BITCOIN-PUBKEY",
+#   "task_id":"YsBGsF3dc9But9GN5mXOTwEFIZWZ8=",
+#   "task_entropy":"LATEST-BLOCKCHAIN-HASH",
+#   "task_expiration":1482710400
+#   },
+#   "task_data_signed":"IKQ2TXYsBGsF3dc9But9GN/TNhW5mXOTwEFIZWZ8="
+#   }]
+
+# terminate
+#   [{
+#   "task_data":{
+#   "task_type":"terminate",
+#   "task_id":"YsBGsF3dc9But9GN5mXOTwEFIZWZ8=",
+#   "task_owner":"BITCOIN-PUBKEY"
+#   },
+#   "task_data_signed":"IKDrBFLmzUJyG1d6iuoP7zZDley8bBYh="
+#   }]
+
+    def create_request_json(self:
+
+    def create_offer_json(self):
+
+    def create_terminate_json(self):
+
+    def verify_request_json(self:
+
+    def verify_offer_json(self:
+
+    def verify_terminate_json(self:
+
+    def read_request_json(self:
+
+    def read_offer_json(self):
+
+    def read_terminate_json(self):
 
     def add_adress_book(self):
         while True:
@@ -683,7 +633,6 @@ class Bitmessage(object):
         if res == 16:
             print('Error: Address already exists in Address Book.')
 
-
     def delete_address_book(self):
         while True:
             address = self.user_input('Enter address')
@@ -693,7 +642,6 @@ class Bitmessage(object):
                      print('{0} has been deleted!'.format(address))
             else:
                 print('Invalid address')
-
 
     def delete_address_book2(self, address):
         try:
@@ -790,12 +738,36 @@ class Bitmessage(object):
             connection = 'YELLOW'
         else:
             connection = 'GREEN'
-        print("Network Status: {0}".format(connection))
-        print("Number Of Network Connections: {0}".format(status['networkConnections']))
-        print("Number Of Pubkeys Processed: {0}".format(status['numberOfPubkeysProcessed']))
-        print("Number Of Messages Processed: {0}".format(status['numberOfMessagesProcessed']))
-        print("Number Of Broadcasts Processed: {0}".format(status['numberOfBroadcastsProcessed']))
+        return connection
 
+    def client_connections(self):
+        status = json.loads(self.api.clientStatus())
+        connections = status['networkConnections']
+        pubkeys = status['numberOfPubkeysProcessed']
+        messages = status['numberOfMessagesProcessed']
+        broadcasts = status['numberOfBroadcastsProcessed']
+        return connections, pubkeys, messages, broadcasts
+
+    def preparations(self):
+        self.api_data()
+        try:
+            if self.enable_bm.poll() is None:
+                self.bm_active = True
+            else:
+                self.bm_active = False
+                self.run_bitmessage()
+        except AttributeError:
+            self.bm_active = False
+            self.run_bitmessage()
+
+        if not self.bm_api_import:
+            self.api = xmlrpclib.ServerProxy(self.return_api())
+
+        if not self.api_check():
+            self.bm_api_import = False
+        else:
+            if not self.bm_api_import:
+                self.bm_api_import = True
 
 if __name__ == "__main__":
     print('The API should never be called directly.')
