@@ -7,15 +7,16 @@
 # https://bitmessage.org/wiki/API_Reference for API documentation
 
 import base64
+import configparser
 import datetime
 import json
 import os
 import sys
 import xml
-
 import psutil
 
 APPNAME = 'Taskhive'
+CONFIG = configparser.RawConfigParser()
 TASKHIVE_DIR = os.path.dirname(os.path.abspath(__file__))
 BITMESSAGE_DIR = os.path.join(TASKHIVE_DIR, 'bitmessage')
 BITMESSAGE_PROGRAM = os.path.join(BITMESSAGE_DIR, 'bitmessagemain.py')
@@ -51,40 +52,51 @@ class ValueVerifier(object):
 
 
 class Taskhive(object):
-    def __init__(self):
-        self.bitmessage_process_dict = {}
-
-    def verify_bitmessage(self):
+    def find_running_bitmessage_port(self):
         for process in psutil.process_iter():
-            if BITMESSAGE_PROGRAM in process.cmdline():
-                
-        for each in process.cmdline():
-            if each.find('bitmessagemain') == -1:
-                pass
-            else:
-                print(
-                raise ConversionFailure(5, "our bitmessage is already running")
-                raise ConversionFailure(6, "bitmessage is already running from somewhere else"
-                raise ConversionFailure(4, "now running our bitmessage daemon")
+            cmdline = process.cmdline()
+            for each in cmdline:
+                if 'bitmessagemain' in each:
+                    bitmessage_dict[process.pid] = {}
+                    for x in process.open_files():
+                        break
+                    keysfile = os.path.join(os.path.dirname(x.path), 'keys.dat')
+                    if os.path.isfile(keysfile):
+                        CONFIG.read(keysfile)
+                        try:
+                            bitmessage_port = CONFIG.getint('bitmessagesettings', 'port')
+                        except(NoSectionError, NoOptionError):
+                            return 'corrupted keys.dat'
+                        else:
+                            bitmessage_dict[process.pid]['file'] = each
+                            bitmessage_dict[process.pid]['port'] = bitmessage_port
+                    else:
+                        return 'keys.dat not found'
+                    return json.dumps(bitmessage_dict, indent=4, separators=(',',': '))
+                else:
+                    pass
+#                raise ConversionFailure(5, "our bitmessage is already running")
+#                raise ConversionFailure(6, "bitmessage is already running from somewhere else"
+#                raise ConversionFailure(4, "now running our bitmessage daemon")
 
     def run_bitmessage(self):
         try:
             if sys.platform.startswith('win'):
-                self.run_bm = subprocess.Popen(BITMESSAGE_PROGRAM),
-                                                  stdout=subprocess.PIPE,
-                                                  stderr=subprocess.PIPE,
-                                                  stdin=subprocess.PIPE,
-                                                  bufsize=0,
-                                                  cwd=TASKHIVE_DIR)
+                run_bm = subprocess.Popen(BITMESSAGE_PROGRAM),
+                                          stdout=subprocess.PIPE,
+                                          stderr=subprocess.PIPE,
+                                          stdin=subprocess.PIPE,
+                                          bufsize=0,
+                                          cwd=TASKHIVE_DIR)
             else:
-                self.run_bm = subprocess.Popen(BITMESSAGE_PROGRAM,
-                                                  stdout=subprocess.PIPE,
-                                                  stderr=subprocess.PIPE,
-                                                  stdin=subprocess.PIPE,
-                                                  bufsize=0,
-                                                  cwd=TASKHIVE_DIR,
-                                                  preexec_fn=os.setpgrp,
-                                                  close_fds=True)
+                run_bm = subprocess.Popen(BITMESSAGE_PROGRAM,
+                                          stdout=subprocess.PIPE,
+                                          stderr=subprocess.PIPE,
+                                          stdin=subprocess.PIPE,
+                                          bufsize=0,
+                                          cwd=TASKHIVE_DIR,
+                                          preexec_fn=os.setpgrp,
+                                          close_fds=True)
         except OSError:
             raise ConversionFailure(3, "can not find bitmessagemain.py")
 
