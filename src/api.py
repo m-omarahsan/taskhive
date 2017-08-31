@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-# Derivitation of the Bitmessage CLI originally created by Adam Melton (Dokument)
-# Modified by Scott King (Lvl4Sword)
-# Modified for use in the Taskhive project (taskhive.io)
-# Distributed under the MIT/X11 software license
-# See http://www.opensource.org/licenses/mit-license.php
-# https://bitmessage.org/wiki/API_Reference for API documentation
+# Uses pieces from bitmessagecli.py and api.py
+# Credit for bitmessagecli.py: Adam Melton (Dokument), Scott King (Lvl4Sword)
+# Credit for api.py: Bitmessage developers, Peter Surda (Shurdeek)
+# Created for use in the Taskhive project (taskhive.io)
+# Distributed under the MIT/X11 software license (http://www.opensource.org/licenses/mit-license.php)
+# https://bitmessage.org/wiki/API_Reference for Bitmessage API documentation
+# Taskhive API documentation is a work in progress
 
 import base64
 import configparser
@@ -14,6 +15,7 @@ import os
 import sys
 import xml
 import psutil
+from bitmessage.debug import logger
 
 APPNAME = 'Taskhive'
 CONFIG = configparser.RawConfigParser()
@@ -23,32 +25,24 @@ BITMESSAGE_PROGRAM = os.path.join(BITMESSAGE_DIR, 'bitmessagemain.py')
 
 # Failure codes
 # 0 - quitting voluntarily
-# 1 - bitmessage folder missing
-# 2 - configuration information is missing
-# 3 - can not find bitmessagemain.py
-# 4 - now running our bitmessage daemon
-# 5 - our bitmessage is already running
-# 6 - bitmessage is already running from somewhere else
-# 7 - can not connect to API
-# 8 - 
-class ConversionFailure(Exception):
-    def __init__(self, code, message):
-        self.failure_message = message
-        self.failure_code = code
+# 1 - quitting non-voluntarily, reason: []
+# 2 - bitmessage folder missing
+# 3 - configuration information is missing
+# 4 - can not find bitmessagemain.py
+# 5 - now running our bitmessage daemon
+# 6 - our bitmessage is already running
+# 7 - bitmessage is already running from somewhere else
+# 8 - can not connect to API
+# 9 - corrupted keys.dat
+# 10 - keys.dat not found
+class APIError(Exception):
+    def __init__(self, error_number, error_message):
+        super(APIError, self).__init__()
+        self.error_number = error_number
+        self.error_message = error_message
 
-
-class ValueVerifier(object):
-    def __init__(self, **kwargs):
-        self.running = True
-
-    def verify(self):
-        while True:
-            try:
-                value = self.convert(**self.convert_kwargs)
-            except ConversionFailed as e:
-                return e.failure_message, e.failure_code
-            else:
-                return value
+    def __str__(self):
+        return "Taskhive API Error - Code:[{0:d}] Message:[{1:s}]".format(self.error_number, self.error_message))
 
 
 class Taskhive(object):
@@ -70,14 +64,11 @@ class Taskhive(object):
                         else:
                             bitmessage_dict[process.pid]['file'] = each
                             bitmessage_dict[process.pid]['port'] = bitmessage_port
+                            return json.dumps(bitmessage_dict, indent=4, separators=(',',': '))
                     else:
                         return 'keys.dat not found'
-                    return json.dumps(bitmessage_dict, indent=4, separators=(',',': '))
                 else:
                     pass
-#                raise ConversionFailure(5, "our bitmessage is already running")
-#                raise ConversionFailure(6, "bitmessage is already running from somewhere else"
-#                raise ConversionFailure(4, "now running our bitmessage daemon")
 
     def run_bitmessage(self):
         try:
@@ -98,10 +89,14 @@ class Taskhive(object):
                                           preexec_fn=os.setpgrp,
                                           close_fds=True)
         except OSError:
-            raise ConversionFailure(3, "can not find bitmessagemain.py")
+            raise APIError(3, 'can not find bitmessagemain.py')
 
     def kill_bitmessage(self):
-        
+        try:
+            self.api.shutdown()
+            sys.exit(0)
+        except(AttributeError, OSError, socket.error):
+            sys.exit(1)
 
     def shutdown_bitmessage(self):
         try:
