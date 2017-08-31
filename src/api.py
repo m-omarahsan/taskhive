@@ -18,23 +18,37 @@ import psutil
 from bitmessage.debug import logger
 
 APPNAME = 'Taskhive'
-CONFIG = configparser.RawConfigParser()
+CONFIG = configparser.ConfigParser()
 TASKHIVE_DIR = os.path.dirname(os.path.abspath(__file__))
 BITMESSAGE_DIR = os.path.join(TASKHIVE_DIR, 'bitmessage')
 BITMESSAGE_PROGRAM = os.path.join(BITMESSAGE_DIR, 'bitmessagemain.py')
+KEYS_FILE = os.path.join(BITMESSAGE_DIR, 'keys.dat')
+EXPECTED_SETTINGS = frozenset(['apienabled','apiinterface','apipassword',
+'apiport','apiusername','blackwhitelist','daemon','defaultnoncetrialsperbyte',
+'defaultpayloadlengthextrabytes','digestalg','hidetrayconnectionnotifications',
+'identiconsuffix','keysencrypted','maxacceptablenoncetrialsperbyte',
+'maxacceptablepayloadlengthextrabytes','maxdownloadrate','maxoutboundconnections',
+'maxuploadrate','messagesencrypted','minimizeonclose','minimizetotray',
+'namecoinrpchost','namecoinrpcpassword','namecoinrpcport','namecoinrpctype',
+'namecoinrpcuser','onionbindip','onionhostname','onionport','opencl','port',
+'replybelow','sendoutgoingconnections','settingsversion','showtraynotifications',
+'smtpdeliver','socksauthentication','sockshostname','sockslisten','sockspassword',
+'socksport','socksproxytype','socksusername','startintray','startonlogon',
+'stopresendingafterxdays','stopresendingafterxmonths','timeformat','trayonclose',
+'ttl','useidenticons','userlocale','willinglysendtomobile'])
 
-# Failure codes
+
+# error codes
 # 0 - quitting voluntarily
 # 1 - quitting non-voluntarily, reason: []
 # 2 - bitmessage folder missing
-# 3 - configuration information is missing
-# 4 - can not find bitmessagemain.py
-# 5 - now running our bitmessage daemon
-# 6 - our bitmessage is already running
-# 7 - bitmessage is already running from somewhere else
-# 8 - can not connect to API
-# 9 - corrupted keys.dat
-# 10 - keys.dat not found
+# 3 - can not find our bitmessagemain.py
+# 4 - keys.dat not found, file: []
+# 5 - configuration information is missing. information: [], file: []
+# 6 - incorrect bitmessagesettings option provided
+# 7 - now running our bitmessage daemon
+# 8 - our bitmessage is already running
+# 9 - can not connect to bitmessage api
 class APIError(Exception):
     def __init__(self, error_number, error_message):
         super(APIError, self).__init__()
@@ -89,14 +103,7 @@ class Taskhive(object):
                                           preexec_fn=os.setpgrp,
                                           close_fds=True)
         except OSError:
-            raise APIError(3, 'can not find bitmessagemain.py')
-
-    def kill_bitmessage(self):
-        try:
-            self.api.shutdown()
-            sys.exit(0)
-        except(AttributeError, OSError, socket.error):
-            sys.exit(1)
+            raise APIError(5, 'can not find our bitmessagemain.py')
 
     def shutdown_bitmessage(self):
         try:
@@ -105,6 +112,36 @@ class Taskhive(object):
             print('Socket Error')
         except(AttributeError, OSError):
             print('AttributeError / OSError')
+
+    def verify_settings(self)
+        CONFIG.read(KEYS_FILE)
+        missing_options = []
+        extra_options = []
+        if 'bitmessagesettings' in CONFIG.sections():
+            bitmessagesettings = CONFIG['bitmessagesettings']
+            for each in EXPECTED_SETTINGS:
+                if each in bitmessagesettings:
+                    pass
+                else:
+                    missing_options.append(each)
+            if len(missing_options) >= 1:
+                APIError(Exception)
+            for each in bitmessagesettings:
+                if each in EXPECTED_SETTINGS:
+                    pass
+                else:
+                    extra_options.append(each)
+
+    def bitmessagesettings_change_option(self, setting):
+        if setting in EXPECTED_SETTINGS:
+            CONFIG.read(KEYS_FILE)
+            try:
+                bitmessage_port = CONFIG.get('bitmessagesettings', setting)
+            except configparser.NoSectionError:
+                return 'corrupted keys.dat'
+            except configparser.NoOptionError:
+        else:
+            raise APIError(6, 'incorrect bitmessagesettings option provided')
 
     # Tests the API connection to bitmessage.
     # Returns True if it is connected.
