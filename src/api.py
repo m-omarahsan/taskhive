@@ -16,6 +16,7 @@ import sys
 import xml
 import psutil
 from bitmessage.debug import logger
+import address_generator
 
 APPNAME = 'Taskhive'
 CONFIG = configparser.ConfigParser()
@@ -36,19 +37,20 @@ EXPECTED_SETTINGS = frozenset(['apienabled','apiinterface','apipassword',
 'socksport','socksproxytype','socksusername','startintray','startonlogon',
 'stopresendingafterxdays','stopresendingafterxmonths','timeformat','trayonclose',
 'ttl','useidenticons','userlocale','willinglysendtomobile'])
+VERSION_BYTE = '00'
 
 
 # error codes
-# 0 - quitting voluntarily
-# 1 - quitting non-voluntarily, reason: []
-# 2 - bitmessage folder missing
-# 3 - can not find our bitmessagemain.py
-# 4 - keys.dat not found, file: []
-# 5 - configuration information is missing. information: [], file: []
-# 6 - incorrect bitmessagesettings option provided
-# 7 - now running our bitmessage daemon
-# 8 - our bitmessage is already running
-# 9 - can not connect to bitmessage api
+#  0 - quitting voluntarily
+#  1 - quitting non-voluntarily, reason: []
+#  2 - bitmessage folder missing
+#  3 - can not find our bitmessagemain.py
+#  4 - keys.dat not found, file: []
+#  5 - configuration information is missing. information: [], file: []
+#  6 - incorrect bitmessagesettings option provided
+#  7 - now running our bitmessage daemon
+#  8 - our bitmessage is already running
+#  9 - can not connect to bitmessage api
 class APIError(Exception):
     def __init__(self, error_number, error_message):
         super(APIError, self).__init__()
@@ -56,10 +58,17 @@ class APIError(Exception):
         self.error_message = error_message
 
     def __str__(self):
-        return "Taskhive API Error - Code:[{0:d}] Message:[{1:s}]".format(self.error_number, self.error_message))
+        return "Taskhive API Error - Code:({0:d}) Message:({1:s})".format(self.error_number, self.error_message))
 
 
 class Taskhive(object):
+    def generate_keys(self):
+        private_key = address_generator.generate_key()
+        public_key = address_generator.private_to_public(private_key)
+        address = address_generator.address_from_public(public_key, VERSION_BYTE)
+        address_encoded = address_generator.base58_check_encoding(address)
+        return private_key, public_key, address, address_encoded
+
     def find_running_bitmessage_port(self):
         for process in psutil.process_iter():
             cmdline = process.cmdline()
@@ -73,14 +82,17 @@ class Taskhive(object):
                         CONFIG.read(keysfile)
                         try:
                             bitmessage_port = CONFIG.getint('bitmessagesettings', 'port')
-                        except(NoSectionError, NoOptionError):
-                            return 'corrupted keys.dat'
+                        except NoOptionError:
+                            raise APIError(5, 'configuration information is missing. information: [port], file: [{0}]'.format(keysfile))
+                        except NoSectionError:
+                           raise APIError(5, 'configuration information is missing. information: [bitmessagesettings], file: [{0}]'.format(keysfile))
                         else:
                             bitmessage_dict[process.pid]['file'] = each
                             bitmessage_dict[process.pid]['port'] = bitmessage_port
                             return json.dumps(bitmessage_dict, indent=4, separators=(',',': '))
                     else:
-                        return 'keys.dat not found'
+                        logger.warn('Taskhive API Error - Code:(4) Message:(keys.dat not found, file: [{0}]'.format(keysfile))
+                        raise APIError(4, 'keys.dat not found, file: [{0}]'.format(keysfile))
                 else:
                     pass
 
@@ -103,14 +115,15 @@ class Taskhive(object):
                                           preexec_fn=os.setpgrp,
                                           close_fds=True)
         except OSError:
-            raise APIError(5, 'can not find our bitmessagemain.py')
+            logger.warn('Taskhive API Error - Code:(3) Message:(can not find our bitmessagemain.py)')
+            raise APIError(3, 'can not find our bitmessagemain.py')
 
     def shutdown_bitmessage(self):
         try:
             self.api.shutdown()
         except socket.error:
-            print('Socket Error')
-        except(AttributeError, OSError):
+            sys.exit(0)
+        except AttributeError:
             print('AttributeError / OSError')
 
     def verify_settings(self)
@@ -125,7 +138,7 @@ class Taskhive(object):
                 else:
                     missing_options.append(each)
             if len(missing_options) >= 1:
-                APIError(Exception)
+                raise APIError(Exception)
             for each in bitmessagesettings:
                 if each in EXPECTED_SETTINGS:
                     pass
