@@ -62,15 +62,51 @@ class APIError(Exception):
 
 
 class Taskhive(object):
+    def verify_settings(self)
+        CONFIG.read(KEYS_FILE)
+        missing_options = []
+        extra_options = []
+        if 'bitmessagesettings' in CONFIG.sections():
+            bitmessagesettings = CONFIG.options('bitmessagesettings')
+            for each in EXPECTED_SETTINGS:
+                if each in bitmessagesettings:
+                    pass
+                else:
+                    missing_options.append(each)
+            for each in bitmessagesettings:
+                if each in EXPECTED_SETTINGS:
+                    pass
+                else:
+                    extra_options.append(each)
+            if len(missing_options) >= 1 or len(extra_options) >= 1:
+                return missing_options, extra_options
+        else:
+            return 'bitmessagesettings section missing'
+
+    def keys_file_exist(self):
+        if os.path.isfile(KEYS_FILE):
+            CONFIG.read(KEYS_FILE)
+        else:
+            return 'our keys file is missing'
+
+    def create_bitmessage_api(self):
+        self.verify_settings()
+        api_username = CONFIG.get('bitmessagesettings', 'apiusername')
+        api_password = CONFIG.get('bitmessagesettings', 'apipassword')
+        api_interface = CONFIG.get('bitmessagesettings', 'apiinterface')
+        api_port = CONFIG.getint('bitmessagesettings', 'apiport')
+        # Build the api credentials
+        return 'http://{0}:{1}@{2}:{3}/'.format(api_username,
+                                                api_password,
+                                                api_interface,
+                                                api_port)
+
     def generate_and_store_keys(self):
         private_key = address_generator.generate_key()
         public_key = address_generator.private_to_public(private_key)
         address = address_generator.address_from_public(public_key)
         address_encoded = address_generator.base58_check_encoding(address)
-        if os.path.isfile(KEYS_FILE):
-            CONFIG.read(KEYS_FILE)
-        else:
-            return 'our keys file is missing'
+        self.keys_file_exist()
         if 'taskhivekeys' not in CONFIG.sections():
             CONFIG.add_section('taskhivekeys')
         CONFIG.set('taskhivekeys', 'private', private_key)
@@ -82,10 +118,7 @@ class Taskhive(object):
         return private_key, public_key, address, address_encoded
 
     def retrieve_keys(self):
-        if os.path.isfile(KEYS_FILE):
-            CONFIG.read(KEYS_FILE)
-        else:
-            return 'our keys file is missing'
+        self.keys_file_exist()
         if 'taskhivekeys' in CONFIG.sections():
             CONFIG.add_section('taskhivekeys')
             private_key = CONFIG.get('taskhivekeys', 'private')
@@ -150,29 +183,8 @@ class Taskhive(object):
             self.api.shutdown()
         except socket.error:
             sys.exit(0)
-        except AttributeError:
-            print('AttributeError / OSError')
-
-    def verify_settings(self)
-        CONFIG.read(KEYS_FILE)
-        missing_options = []
-        extra_options = []
-        if 'bitmessagesettings' in CONFIG.sections():
-            bitmessagesettings = CONFIG.options('bitmessagesettings')
-            for each in EXPECTED_SETTINGS:
-                if each in bitmessagesettings:
-                    pass
-                else:
-                    missing_options.append(each)
-            for each in bitmessagesettings:
-                if each in EXPECTED_SETTINGS:
-                    pass
-                else:
-                    extra_options.append(each)
-            if len(missing_options) >= 1 or len(extra_options) >= 1:
-                return missing_options, extra_options
-        else:
-            return 'bitmessagesettings section missing'
+        except AttributeError, OSError:
+            return 'shutdown'
 
     def bitmessagesettings_change_option(self, setting):
         if setting in EXPECTED_SETTINGS:
@@ -347,309 +359,6 @@ class Taskhive(object):
         else:
             return base64.b64decode(inbox_messages['inboxMessages'][message_number])
 
-    # Allows you to reply to the message you are currently on.
-    # Saves typing in the addresses and subject.
-    def reply_message(message_number, forward_or_reply):
-        inboxMessages = json.loads(self.api.getAllInboxMessages())
-        # Address it was sent To, now the From address
-        from_address = inboxMessages['inboxMessages'][message_number]['toAddress']
-        # Message that you are replying to
-        message = base64.b64decode(inboxMessages['inboxMessages'][message_number]['message'])
-        subject = inboxMessages['inboxMessages'][message_number]['subject']
-        subject = base64.b64decode(subject)
-        if forward_or_reply == 'reply':
-            # Address it was From, now the To address
-            to_address = inboxMessages['inboxMessages'][message_number]['fromAddress']
-            subject = 'Re: {0}'.format(subject)
-        elif forward_or_reply == 'forward':
-            subject = 'Fwd: {0}'.format(subject)
-            while True:
-                to_address = self.user_input('What is the To Address?')
-                if not self.valid_address(to_address):
-                    print('Invalid Address. Please try again.')
-                else:
-                    break
-        else:
-            print('Invalid Selection. Reply or Forward only')
-            return
-        subject = base64.b64encode(subject)
-        new_message = self.user_input('Enter your Message.')
-        self.send_message(to_address, from_address, subject, new_message)
-
-    # Deletes a specified message from the outbox
-    def delete_sent_message(self, message_number):
-        try:
-            outbox_messages = json.loads(self.api.getAllSentMessages())
-            # gets the message ID via the message index number
-            # TODO - message_number is wrapped in an int(), needed?
-            message_id = outbox_messages['sentMessages'][int(message_number)]['msgid']
-            message_ack = self.api.trashSentMessage(message_id)
-            return message_ack
-        except socket.error:
-            self.bm_api_import = False
-            print('Couldn\'t delete message due to an API connection issue')
-
-    def list_address_book(self):
-        try:
-            response = self.api.listAddressBookEntries()
-            if 'API Error' in response:
-                return self.get_api_error_code(response)
-            address_book = json.loads(response)
-            if address_book['addresses']:
-                print('-------------------------------------')
-                for each in address_book['addresses']:
-                    print('Label: {0}'.format(base64.b64decode(each['label'])))
-                    print('Address: {0}'.format(each['address']))
-                    print('-------------------------------------')
-            else:
-                print('No addresses found in address book.')
-        except socket.error:
-            self.bm_api_import = False
-            print('Couldn\'t access address book due to an API connection issue')
-
-    def add_address_book(self, address, label):
-        try:
-            response = self.api.addAddressBookEntry(address, base64.b64encode(label))
-            if 'API Error' in response:
-                return self.get_api_error_code(response)
-        except socket.error:
-            self.bm_api_import = False
-            print('Couldn\'t add to address book due to an API connection issue')
-
-    def get_api_error_code(self, response):
-        if 'API Error' in response:
-            # If we have an API error, return the number by getting
-            # after the second space and removing the trailing colon
-            return int(response.split()[2][:-1])
-
-    def mark_message_read(self, message_id):
-        try:
-            response = self.api.getInboxMessageByID(message_id, True)
-            if 'API Error' in response:
-                return self.get_api_error_code(response)
-        except socket.error:
-            self.bm_api_import = False
-            print('Couldn\'t mark message as read due to an API connection issue')
-
-    def mark_message_unread(self, message_id):
-        try:
-            response = self.api.getInboxMessageByID(message_id, False)
-            if 'API Error' in response:
-               return self.get_api_error_code(response)
-        except socket.error:
-            self.bm_api_import = False
-            print('Couldn\'t mark message as unread due to an API connection issue')
-
-    def mark_all_messages_read(self):
-        try:
-            inbox_messages = json.loads(self.api.getAllInboxMessages())['inboxMessages']
-            for message in inbox_messages:
-                if not message['read']:
-                    mark_message_read(message['msgid'])
-        except socket.error:
-            self.bm_api_import = False
-            print('Couldn\'t mark all messages read due to an API connection issue')
-
-    def mark_all_messages_unread(self):
-        try:
-            inbox_messages = json.loads(self.api.getAllInboxMessages())['inboxMessages']
-            for message in inbox_messages:
-                if message['read']:
-                    mark_message_unread(message['msgid'])
-        except socket.error:
-            self.bm_api_import = False
-            print('Couldn\'t mark all messages unread due to an API connection issue')
-
-    def delete_inbox_messages(self):
-        try:
-            inbox_messages = json.loads(self.api.getAllInboxMessages())
-            total_messages = len(inbox_messages['inboxMessages'])
-            while True:
-                message_number = self.user_input('Enter the number of the message you wish to delete or (A)ll to empty the inbox.').lower()
-                try:
-                    if message_number in ['all', 'a'] or int(message_number) == total_messages:
-                        break
-                    elif int(message_number) >= total_messages:
-                        print('Invalid Message Number')
-                    elif int(message_number) <= numMessages:
-                        break
-                    else:
-                        print('Invalid input')
-                except ValueError:
-                    print('Invalid input')
-            # Prevent accidental deletion
-            delete_verify = self.user_input('Are you sure, (Y)/(n)').lower()
-            if delete_verify in ['yes', 'y']:
-                if message_number in ['all', 'a'] or int(message_number) == total_messages:
-                    # Processes all of the messages in the inbox
-                    for message_number in range (0, total_messages):
-                        print('Deleting message {0} of {1}'.format(message_number+1, total_messages))
-                        self.delete_message(0)
-                    print('Inbox is empty.')
-                else:
-                    # No need for a try/except since it was already verified up above!
-                    self.delete_message(int(message_number))
-                print('Notice: Message numbers may have changed.')
-        except socket.error:
-            self.bm_api_import = False
-            print('Couldn\'t delete inbox message(s) due to an API connection issue')
-
-    def add_info(self):
-        try:
-            while True:
-                address = self.user_input('Enter the Bitmessage Address:')
-                address_information = json.loads(str(self.api.decodeAddress(address)))
-                if address_information['status'] == 'success':
-                    print('Address Version: {0}'.format(address_information['addressVersion']))
-                    print('Stream Number: {0}'.format(address_information['streamNumber']))
-                    break
-                else:
-                    print('Invalid address!')
-        except AttributeError:
-            print('Invalid address!')
-        except socket.error:
-            self.bm_api_import = False
-            print('Couldn\'t display address information due to an API connection issue')
-
-    def send_something(self):
-        while True:
-            send_which = self.user_input('Would you like to send a (M)essage or (B)roadcast?').lower()
-            if send_which in ['message', 'm', 'broadcast', 'b']:
-                break
-            else:
-                print('Invald input')
-        if send_which in ['message', 'm']:
-            self.send_message('','','','')
-        elif send_which in ['broadcast', 'b']:
-            self.send_broadcast('','','')
-
-    def read_something(self):
-        while True:
-            read_which = self.user_input('Would you like to read a message from the (I)nbox or (O)utbox?').lower()
-            if read_which in ['inbox', 'outbox', 'i', 'o']:
-                break
-            else:
-                print('Invalid input')
-        try:
-            message_number = int(self.user_input('What is the number of the message you wish to open?'))
-        except ValueError:
-            print("That's not a whole number")
-        if read_which in ['inbox', 'i']:
-            print('Loading...')
-            message_id = self.read_message(message_number)
-            verify_unread = self.user_input('Would you like to keep this message unread, (Y)/(n)').lower()
-            if verify_unread not in ['yes', 'y']:
-                self.mark_message_read(message_id)
-            while True:
-                do_which = self.user_input('Would you like to (D)elete, (F)orward or (R)eply?').lower()
-                if do_which in ['reply','r','forward','f','delete','d','forward','f','reply','r']:
-                    break
-                else:
-                    print('Invalid input')
-            if do_which in ['reply', 'r']:
-                print('Loading...')
-                self.reply_message(message_number,'reply')
-            elif do_which in ['forward', 'f']:
-                print('Loading...')
-                self.reply_message(message_number,'forward')
-            elif do_which in ['delete', 'd']:
-                # Prevent accidental deletion
-                verify_delete = self.user_input('Are you sure, (Y)/(n)').lower()
-                if verify_delete in ['yes', 'y']:
-                    self.delete_message(message_number)
-                    print('Message Deleted.')
-        elif read_which in ['outbox', 'o']:
-            self.read_sent_message(message_number)
-            # Gives the user the option to delete the message
-            delete_this = self.user_input('Would you like to Delete this message, (Y)/(n)').lower()
-            if delete_this in ['yes', 'y']:
-                # Prevent accidental deletion
-                verify_delete = self.user_input('Are you sure, (Y)/(n)').lower()
-                if verify_delete in ['yes', 'y']:
-                    self.delete_sent_message(message_number)
-                    print('Message Deleted.')
-
-    def save_message(self):
-        while True:
-            which_box = self.user_input('Would you like to read a message from the (I)nbox or (O)utbox?').lower()
-            if which_box in ['inbox', 'outbox', 'i', 'o']:
-                break
-        try:
-            message_number = int(self.user_input('What is the number of the message you wish to open?'))
-        except ValueError:
-            print("That's not a whole number")
-        if which_box in ['inbox', 'i']:
-            print('Loading...')
-            message_id = self.read_message(message_number)
-            keep_unread = self.user_input('Would you like to keep this message unread, (Y)/(n)').lower()
-            if keep_unread not in ['yes', 'y']:
-                self.mark_message_read(message_id)
-            while True:
-                message_options = self.user_input('Would you like to (D)elete, (F)orward or (R)eply?').lower()
-                if message_options in ['reply','r','forward','f','delete','d','forward','f','reply','r']:
-                    break
-                else:
-                    print('Invalid input')
-            if message_options in ['reply', 'r']:
-                print('Loading...')
-                self.reply_message(message_number,'reply')
-            elif message_options in ['forward', 'f']:
-                print('Loading...')
-                self.reply_message(message_number,'forward')
-            elif message_options in ['delete', 'd']:
-                # Prevent accidental deletion
-                verify_delete = self.user_input('Are you sure, (Y)/(n)').lower()
-                if verify_delete in ['yes', 'y']:
-                    self.delete_message(message_number)
-                    print('Message Deleted.')
-        elif which_box in ['outbox', 'o']:
-            self.read_sent_message(message_number)
-            # Gives the user the option to delete the message
-            delete_message = self.user_input('Would you like to Delete this message, (Y)/(n)').lower()
-            if delete_message in ['yes', 'y']:
-                # Prevent accidental deletion
-                verify_delete = self.user_input('Are you sure, (Y)/(n)').lower()
-                if verify_delete in ['yes', 'y']:
-                    self.delete_sent_message(message_number)
-                    print('Message Deleted.')
-
-    def delete_message(self):
-        try:
-            which_box = self.user_input('Would you like to delete a message from the (I)nbox or (O)utbox?').lower()
-
-            if which_box in ['inbox', 'i']:
-                self.delete_inbox_messages()
-            elif which_box in ['outbox', 'o']:
-                outbox_messages = json.loads(self.api.getAllSentMessages())
-                total_messages = len(outbox_messages['sentMessages'])
-
-                while True:
-                    message_number = self.user_input('Enter the number of the message you wish to delete or (A)ll to empty the outbox.').lower()
-                    try:
-                        if message_number in ['all', 'a'] or int(message_number) == total_messages:
-                            break
-                        elif int(message_number) >= total_messages:
-                            break
-                        else:
-                            print('Invalid input')
-                    except ValueError:
-                        print('Invalid input')
-                # Prevent accidental deletion
-                verify_deletion = self.user_input('Are you sure, (Y)/(n)').lower()
-                if verify_deletion in ['yes', 'y']:
-                    if message_number in ['all', 'a'] or int(message_number) == total_messages:
-                        # processes all of the messages in the outbox
-                        for message_number in range (0, total_messages):
-                            print('Deleting message {0} of {1}'.format(message_number+1, total_messages))
-                            self.delete_sent_message(0)
-                        print('Outbox is empty.')
-                    else:
-                        self.delete_sent_message(int(message_number))
-                    print('Notice: Message numbers may have changed.')
-        except socket.error:
-            self.bm_api_import = False
-            print('Couldn\'t access outbox due to an API connection issue')
-
 # Task requests and offers have an identical JSON array format, differing only in task_type.
 #   [{
 #   "task_data":{
@@ -704,42 +413,6 @@ class Taskhive(object):
 
     def read_terminate_json(self):
 
-    def add_adress_book(self):
-        while True:
-            address = self.user_input('Enter address')
-            if self.valid_address(address):
-                label = self.user_input('Enter label')
-                if label:
-                    break
-                else:
-                    print('You need to put a label')
-            else:
-                print('Invalid address')
-        res = self.add_address_book(address, label)
-        if res == 16:
-            print('Error: Address already exists in Address Book.')
-
-    def delete_address_book(self):
-        while True:
-            address = self.user_input('Enter address')
-            if self.valid_address(address):
-                res = self.delete_address_book2(address)
-                if res in 'Deleted address book entry':
-                     print('{0} has been deleted!'.format(address))
-            else:
-                print('Invalid address')
-
-    def delete_address_book2(self, address):
-        try:
-            response = self.api.deleteAddressBookEntry(address)
-            if 'API Error' in response:
-                return self.get_api_error_code(response)
-            else:
-                return response
-        except socket.error:
-            self.bm_api_import = False
-            print('Couldn\'t delete from address book due to an API connection issue')
-
     def unread_message_info(self):
         inbox_messages = json.loads(self.api.getAllInboxMessages())
         CONFIG.read(self.keys_file)
@@ -750,71 +423,9 @@ class Taskhive(object):
                     unread_messages += 1
         # If the bitmessageheader is there, AND you have at least one address
         if unread_messages >= 1 and len(CONFIG.sections()) >= 2:
-            print('\nYou have {0} unread message(s)'.format(unread_messages))
+            return unread_messages
         else:
-            return
-
-    def generate_deterministic(self):
-        deterministic = True
-        label = self.user_input('Label the new address:')
-        passphrase = self.user_input('Enter the Passphrase.')
-
-        while True:
-            try:
-                number_of_addresses = int(self.user_input('How many addresses would you like to generate?'))
-            except ValueError:
-                print("That's not a whole number.")
-            else:
-                if number_of_addresses <= 0:
-                    print('How were you expecting that to work?')
-                elif number_of_addresses >= 1000:
-                    print('Limit of 999 addresses generated at once.')
-                else:
-                    break
-        address_version = 3
-        # TODO - I hate that this is hardcoded..
-        stream_number = 1
-        is_ripe = self.user_input('Shorten the address, (Y)/(n)').lower()
-        print('Generating, please wait...')
-
-        if is_ripe in ['yes', 'y']:
-            ripe = True
-        else:
-            ripe = False
-        # TODO - Catch the error that happens when deterministic is not True/False
-        generated_address = self.generate_address(label,deterministic,passphrase,number_of_addresses,address_version,stream_number,ripe)
-        json_addresses = json.loads(generated_address)
-
-        if number_of_addresses >= 2:
-            print('Addresses generated: ')
-        elif number_of_addresses == 1:
-            print('Address generated: ')
-        for each in json_addresses['addresses']:
-            print(each)
-
-    def generate_random(self):
-        deterministic = False
-        label = self.user_input('Enter the label for the new address.')
-        generated_address = self.generate_address(label,deterministic,'', '', '', '', '')
-        if generated_address:
-            print('Generated Address: {0}'.format(generated_address))
-        else:
-            # TODO - Have a more obvious error message here
-            print('An error has occured')
-
-    def generate_an_address(self):
-        while True:
-            type_of_address = self.user_input('Would you like to create a (D)eterministic or (R)andom address?').lower()
-            if type_of_address in ['deterministic', 'd', 'random', 'r']:
-                break
-            else:
-                print('Invalid input')
-        # Creates a deterministic address
-        if type_of_address in ['deterministic', 'd']:
-            self.generate_deterministic()
-        # Creates a random address with user-defined label
-        elif type_of_address in ['random', 'r']:
-            self.generate_random()
+            return 0
 
     def client_status(self):
         status = json.loads(self.api.clientStatus())
@@ -836,24 +447,8 @@ class Taskhive(object):
 
     def preparations(self):
         self.api_data()
-        try:
-            if self.enable_bm.poll() is None:
-                self.bm_active = True
-            else:
-                self.bm_active = False
-                self.run_bitmessage()
-        except AttributeError:
-            self.bm_active = False
-            self.run_bitmessage()
-
-        if not self.bm_api_import:
-            self.api = xmlrpclib.ServerProxy(self.return_api())
-
-        if not self.api_check():
-            self.bm_api_import = False
-        else:
-            if not self.bm_api_import:
-                self.bm_api_import = True
+        self.bitmessage_api = xmlrpclib.ServerProxy(self.return_api())
+        self.run_bitmessage()
 
 if __name__ == "__main__":
     print('The API should never be called directly.')
