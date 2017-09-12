@@ -17,6 +17,7 @@ import xml
 import psutil
 from bitmessage.debug import logger
 import address_generator
+from address_generator import VERSION_BYTE
 
 APPNAME = 'Taskhive'
 CONFIG = configparser.ConfigParser()
@@ -37,7 +38,6 @@ EXPECTED_SETTINGS = frozenset(['apienabled','apiinterface','apipassword',
 'socksport','socksproxytype','socksusername','startintray','startonlogon',
 'stopresendingafterxdays','stopresendingafterxmonths','timeformat','trayonclose',
 'ttl','useidenticons','userlocale','willinglysendtomobile'])
-VERSION_BYTE = '00'
 
 
 # error codes
@@ -62,12 +62,39 @@ class APIError(Exception):
 
 
 class Taskhive(object):
-    def generate_keys(self):
+    def generate_and_store_keys(self):
         private_key = address_generator.generate_key()
         public_key = address_generator.private_to_public(private_key)
-        address = address_generator.address_from_public(public_key, VERSION_BYTE)
+        address = address_generator.address_from_public(public_key)
         address_encoded = address_generator.base58_check_encoding(address)
+        if os.path.isfile(KEYS_FILE):
+            CONFIG.read(KEYS_FILE)
+        else:
+            return 'our keys file is missing'
+        if 'taskhivekeys' not in CONFIG.sections():
+            CONFIG.add_section('taskhivekeys')
+        CONFIG.set('taskhivekeys', 'private', private_key)
+        CONFIG.set('taskhivekeys', 'public', public_key)
+        CONFIG.set('taskhivekeys', 'address', address)
+        CONFIG.set('taskhivekeys', 'address_encoded' address_encoded)
+        with open(self.keys_file, 'wb') as configfile:
+            CONFIG.write(configfile)
         return private_key, public_key, address, address_encoded
+
+    def retrieve_keys(self):
+        if os.path.isfile(KEYS_FILE):
+            CONFIG.read(KEYS_FILE)
+        else:
+            return 'our keys file is missing'
+        if 'taskhivekeys' in CONFIG.sections():
+            CONFIG.add_section('taskhivekeys')
+            private_key = CONFIG.get('taskhivekeys', 'private')
+            public_key = CONFIG.get('taskhivekeys', 'public')
+            address = CONFIG.get('taskhivekeys', 'address')
+            address_encoded = CONFIG.get('taskhivekeys', 'address_encoded')
+            return private_key, public_key, address, address_encoded            
+        else:
+            return 'no taskhivekeys section'
 
     def find_running_bitmessage_port(self):
         for process in psutil.process_iter():
@@ -131,19 +158,21 @@ class Taskhive(object):
         missing_options = []
         extra_options = []
         if 'bitmessagesettings' in CONFIG.sections():
-            bitmessagesettings = CONFIG['bitmessagesettings']
+            bitmessagesettings = CONFIG.options('bitmessagesettings')
             for each in EXPECTED_SETTINGS:
                 if each in bitmessagesettings:
                     pass
                 else:
                     missing_options.append(each)
-            if len(missing_options) >= 1:
-                raise APIError(Exception)
             for each in bitmessagesettings:
                 if each in EXPECTED_SETTINGS:
                     pass
                 else:
                     extra_options.append(each)
+            if len(missing_options) >= 1 or len(extra_options) >= 1:
+                return missing_options, extra_options
+        else:
+            return 'bitmessagesettings section missing'
 
     def bitmessagesettings_change_option(self, setting):
         if setting in EXPECTED_SETTINGS:
