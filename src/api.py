@@ -62,8 +62,8 @@ class APIError(Exception):
 
 
 class Taskhive(object):
-    def verify_settings(self)
-        CONFIG.read(KEYS_FILE)
+    def verify_settings(self, keyfile)
+        CONFIG.read(keyfile)
         missing_options = []
         extra_options = []
         if 'bitmessagesettings' in CONFIG.sections():
@@ -80,17 +80,20 @@ class Taskhive(object):
                     extra_options.append(each)
             if len(missing_options) >= 1 or len(extra_options) >= 1:
                 return missing_options, extra_options
+            else:
+                return True
         else:
             return 'bitmessagesettings section missing'
 
-    def keys_file_exist(self):
-        if os.path.isfile(KEYS_FILE):
-            CONFIG.read(KEYS_FILE)
+    def keys_file_exists(self, keyfile):
+        if os.path.isfile(keyfile):
+            return True
         else:
-            return 'our keys file is missing'
+            return False
 
     def create_bitmessage_api(self):
-        self.verify_settings()
+        self.keys_file_exists(KEYS_FILE)
+        self.verify_settings(KEYS_FILE)
         api_username = CONFIG.get('bitmessagesettings', 'apiusername')
         api_password = CONFIG.get('bitmessagesettings', 'apipassword')
         api_interface = CONFIG.get('bitmessagesettings', 'apiinterface')
@@ -106,7 +109,8 @@ class Taskhive(object):
         public_key = address_generator.private_to_public(private_key)
         address = address_generator.address_from_public(public_key)
         address_encoded = address_generator.base58_check_encoding(address)
-        self.keys_file_exist()
+        self.keys_file_exists(KEYS_FILE)
+        self.verify_settings(KEYS_FILE)
         if 'taskhivekeys' not in CONFIG.sections():
             CONFIG.add_section('taskhivekeys')
         CONFIG.set('taskhivekeys', 'private', private_key)
@@ -115,10 +119,10 @@ class Taskhive(object):
         CONFIG.set('taskhivekeys', 'address_encoded' address_encoded)
         with open(self.keys_file, 'wb') as configfile:
             CONFIG.write(configfile)
-        return private_key, public_key, address, address_encoded
 
     def retrieve_keys(self):
-        self.keys_file_exist()
+        self.keys_file_exists(KEYS_FILE)
+        self.verify_settings(KEYS_FILE)
         if 'taskhivekeys' in CONFIG.sections():
             CONFIG.add_section('taskhivekeys')
             private_key = CONFIG.get('taskhivekeys', 'private')
@@ -190,7 +194,7 @@ class Taskhive(object):
         if setting in EXPECTED_SETTINGS:
             CONFIG.read(KEYS_FILE)
             try:
-                bitmessage_port = CONFIG.get('bitmessagesettings', setting)
+                bitmessage_setting = CONFIG.set('bitmessagesettings', setting)
             except configparser.NoSectionError:
                 return 'corrupted keys.dat'
             except configparser.NoOptionError:
