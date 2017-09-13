@@ -462,8 +462,6 @@ class Taskhive(object):
         self.run_bitmessage()
         print(self.run_bm.pid)
 
-#if __name__ == "__main__":
-#    print('The API should never be called directly.')
-#    sys.exit(0)
-
-Taskhive().preparations()
+if __name__ == "__main__":
+    print('The API should never be called directly.')
+    sys.exit(0)
