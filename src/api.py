@@ -12,6 +12,9 @@ import configparser
 import datetime
 import json
 import os
+import random
+import socket
+import string
 import sys
 import xml
 import psutil
@@ -21,7 +24,12 @@ import address_generator
 from address_generator import VERSION_BYTE
 
 APPNAME = 'Taskhive'
+CHARACTERS = string.digits + string.ascii_letters
 CONFIG = configparser.ConfigParser()
+PROXY_TYPE_DICT = {'none': 'none', 'socks4a': 'SOCKS4a', 'socks5': 'SOCKS5'}
+SECURE_RANDOM = random.SystemRandom()
+RANDOM_INT = random.randint(50, 150)
+
 TASKHIVE_DIR = os.path.dirname(os.path.abspath(__file__))
 BITMESSAGE_DIR = os.path.join(TASKHIVE_DIR, 'bitmessage')
 BITMESSAGE_PROGRAM = os.path.join(BITMESSAGE_DIR, 'bitmessagemain.py')
@@ -64,7 +72,73 @@ class APIError(Exception):
 
 class Taskhive(object):
     def __init__(self):
-        pass
+        self.api = ''
+        self.run_bm = ''
+        self.bitmessage_dict = {}
+
+    def create_settings(self):
+        try:
+            CONFIG.add_section('bitmessagesettings')
+        except ConfigParser.DuplicateSectionError:
+            pass
+        CONFIG.set('bitmessagesettings', 'port', '8444')
+        CONFIG.set('bitmessagesettings', 'settingsversion', '10')
+        # 17600 - 17650 is set for OnionShare in the Tails OS.
+        # If this is randomized, it won't work.
+        # Thus, won't connect using xmlrpclib.
+        CONFIG.set('bitmessagesettings', 'apiport', '17650')
+        CONFIG.set('bitmessagesettings', 'apiinterface', '127.0.0.1')
+        CONFIG.set('bitmessagesettings', 'apiusername',
+                   ''.join([SECURE_RANDOM.choice(CHARACTERS) for x in range(RANDOM_INT)]))
+        CONFIG.set('bitmessagesettings', 'apipassword',
+                   ''.join([SECURE_RANDOM.choice(CHARACTERS) for x in range(RANDOM_INT)]))
+        CONFIG.set('bitmessagesettings', 'daemon', True)
+        CONFIG.set('bitmessagesettings', 'timeformat', '%%c')
+        CONFIG.set('bitmessagesettings', 'blackwhitelist', 'black')
+        CONFIG.set('bitmessagesettings', 'startonlogon', 'False')
+        CONFIG.set('bitmessagesettings', 'minimizetotray', 'False')
+        CONFIG.set('bitmessagesettings', 'showtraynotifications', 'True')
+        CONFIG.set('bitmessagesettings', 'startintray', 'False')
+        CONFIG.set('bitmessagesettings', 'socksproxytype', 'SOCKS5')
+        CONFIG.set('bitmessagesettings', 'sockshostname', 'localhost')
+        CONFIG.set('bitmessagesettings', 'socksport', '9050')
+        CONFIG.set('bitmessagesettings', 'socksauthentication', 'False')
+        CONFIG.set('bitmessagesettings', 'sockslisten', 'False')
+        CONFIG.set('bitmessagesettings', 'socksusername', '')
+        CONFIG.set('bitmessagesettings', 'sockspassword', '')
+        # https://www.reddit.com/r/bitmessage/comments/5vt3la/sha1_and_bitmessage/deev8je/
+        CONFIG.set('bitmessagesettings', 'digestalg', 'sha256')
+        CONFIG.set('bitmessagesettings', 'keysencrypted', 'False')
+        CONFIG.set('bitmessagesettings', 'messagesencrypted', 'False')
+        CONFIG.set('bitmessagesettings', 'defaultnoncetrialsperbyte', '1000')
+        CONFIG.set('bitmessagesettings', 'defaultpayloadlengthextrabytes', '1000')
+        CONFIG.set('bitmessagesettings', 'minimizeonclose', 'False')
+        CONFIG.set('bitmessagesettings', 'maxacceptablenoncetrialsperbyte', '20000000000')
+        CONFIG.set('bitmessagesettings', 'maxacceptablepayloadlengthextrabytes', '20000000000')
+        CONFIG.set('bitmessagesettings', 'userlocale', 'system')
+        CONFIG.set('bitmessagesettings', 'useidenticons', 'False')
+        CONFIG.set('bitmessagesettings', 'identiconsuffix', '')
+        CONFIG.set('bitmessagesettings', 'replybelow', 'False')
+        CONFIG.set('bitmessagesettings', 'maxdownloadrate', '0')
+        CONFIG.set('bitmessagesettings', 'maxuploadrate', '0')
+        CONFIG.set('bitmessagesettings', 'maxoutboundconnections', '8')
+        CONFIG.set('bitmessagesettings', 'ttl', '367200')
+        CONFIG.set('bitmessagesettings', 'stopresendingafterxdays', '')
+        CONFIG.set('bitmessagesettings', 'stopresendingafterxmonths', '')
+        CONFIG.set('bitmessagesettings', 'namecoinrpctype', 'namecoind')
+        CONFIG.set('bitmessagesettings', 'namecoinrpchost', 'localhost')
+        CONFIG.set('bitmessagesettings', 'namecoinrpcuser', '')
+        CONFIG.set('bitmessagesettings', 'namecoinrpcpassword', '')
+        CONFIG.set('bitmessagesettings', 'namecoinrpcport', '8336')
+        CONFIG.set('bitmessagesettings', 'sendoutgoingconnections', 'True')
+        CONFIG.set('bitmessagesettings', 'onionhostname', '')
+        CONFIG.set('bitmessagesettings', 'onionbindip', '127.0.0.1')
+        CONFIG.set('bitmessagesettings', 'hidetrayconnectionnotifications', 'False')
+        CONFIG.set('bitmessagesettings', 'trayonclose', 'False')
+        CONFIG.set('bitmessagesettings', 'willinglysendtomobile', 'False')
+        CONFIG.set('bitmessagesettings', 'opencl', 'None')
+        with open(self.keys_file, 'wb') as configfile:
+            CONFIG.write(configfile)
 
     def verify_settings(self, keyfile):
         CONFIG.read(keyfile)
@@ -96,17 +170,25 @@ class Taskhive(object):
             return False
 
     def create_bitmessage_api(self):
-        self.keys_file_exists(KEYS_FILE)
-        self.verify_settings(KEYS_FILE)
-        api_username = CONFIG.get('bitmessagesettings', 'apiusername')
-        api_password = CONFIG.get('bitmessagesettings', 'apipassword')
-        api_interface = CONFIG.get('bitmessagesettings', 'apiinterface')
-        api_port = CONFIG.getint('bitmessagesettings', 'apiport')
-        # Build the api credentials
-        return 'http://{0}:{1}@{2}:{3}/'.format(api_username,
-                                                api_password,
-                                                api_interface,
-                                                api_port)
+        key_file_existence = self.keys_file_exists(KEYS_FILE)
+        verifying_settings = self.verify_settings(KEYS_FILE)
+        if key_file_existence is True:
+            if verifying_settings is True:
+                api_username = CONFIG.get('bitmessagesettings', 'apiusername')
+                api_password = CONFIG.get('bitmessagesettings', 'apipassword')
+                api_interface = CONFIG.get('bitmessagesettings', 'apiinterface')
+                api_port = CONFIG.getint('bitmessagesettings', 'apiport')
+                # Build the api credentials
+                api_info = 'http://{0}:{1}@{2}:{3}/'.format(api_username,
+                                                            api_password,
+                                                            api_interface,
+                                                            api_port)
+                self.api = xmlrpc.client.ServerProxy(api_info)
+
+            else:
+                return verifying_settings
+        else:
+            return 'keyfile does not exist'
 
     def generate_and_store_keys(self):
         private_key = address_generator.generate_key()
@@ -142,7 +224,7 @@ class Taskhive(object):
             cmdline = process.cmdline()
             for each in cmdline:
                 if 'bitmessagemain' in each:
-                    bitmessage_dict[process.pid] = {}
+                    self.bitmessage_dict[process.pid] = {}
                     for x in process.open_files():
                         break
                     keysfile = os.path.join(os.path.dirname(x.path), 'keys.dat')
@@ -150,14 +232,14 @@ class Taskhive(object):
                         CONFIG.read(keysfile)
                         try:
                             bitmessage_port = CONFIG.getint('bitmessagesettings', 'port')
-                        except NoOptionError:
+                        except configparser.NoOptionError:
                             raise APIError(5, 'configuration information is missing. information: [port], file: [{0}]'.format(keysfile))
-                        except NoSectionError:
+                        except configparser.NoSectionError:
                            raise APIError(5, 'configuration information is missing. information: [bitmessagesettings], file: [{0}]'.format(keysfile))
                         else:
-                            bitmessage_dict[process.pid]['file'] = each
-                            bitmessage_dict[process.pid]['port'] = bitmessage_port
-                            return json.dumps(bitmessage_dict, indent=4, separators=(',',': '))
+                            self.bitmessage_dict[process.pid]['file'] = each
+                            self.bitmessage_dict[process.pid]['port'] = bitmessage_port
+                            return json.dumps(self.bitmessage_dict, separators=(',',': '))
                     else:
 #                        logger.warn('Taskhive API Error - Code:(4) Message:(keys.dat not found, file: [{0}]'.format(keysfile))
                         raise APIError(4, 'keys.dat not found, file: [{0}]'.format(keysfile))
@@ -168,22 +250,21 @@ class Taskhive(object):
         try:
             if sys.platform.startswith('win'):
                 self.run_bm = subprocess.Popen(BITMESSAGE_PROGRAM,
-                                          stdout=subprocess.PIPE,
-                                          stderr=subprocess.PIPE,
-                                          stdin=subprocess.PIPE,
-                                          bufsize=0,
-                                          cwd=TASKHIVE_DIR)
+                                               stdout=subprocess.PIPE,
+                                               stderr=subprocess.PIPE,
+                                               stdin=subprocess.PIPE,
+                                               bufsize=0,
+                                               cwd=TASKHIVE_DIR)
             else:
                 self.run_bm = subprocess.Popen(BITMESSAGE_PROGRAM,
-                                          stdout=subprocess.PIPE,
-                                          stderr=subprocess.PIPE,
-                                          stdin=subprocess.PIPE,
-                                          bufsize=0,
-                                          cwd=TASKHIVE_DIR,
-                                          preexec_fn=os.setpgrp,
-                                          close_fds=True)
+                                               stdout=subprocess.PIPE,
+                                               stderr=subprocess.PIPE,
+                                               stdin=subprocess.PIPE,
+                                               bufsize=0,
+                                               cwd=TASKHIVE_DIR,
+                                               preexec_fn=os.setpgrp,
+                                               close_fds=True)
         except OSError:
-            print('?')
 #            logger.warn('Taskhive API Error - Code:(3) Message:(can not find our bitmessagemain.py)')
             raise APIError(3, 'can not find our bitmessagemain.py')
         except Exception as e:
@@ -192,10 +273,9 @@ class Taskhive(object):
     def shutdown_bitmessage(self):
         try:
             self.api.shutdown()
-        except socket.error:
             sys.exit(0)
-        except(AttributeError, OSError):
-            return 'shutdown'
+        except(AttributeError, OSError, socket.error) as e:
+            sys.exit(1)
 
     def bitmessagesettings_change_option(self, setting):
         if setting in EXPECTED_SETTINGS:
@@ -456,11 +536,6 @@ class Taskhive(object):
         messages = status['numberOfMessagesProcessed']
         broadcasts = status['numberOfBroadcastsProcessed']
         return connections, pubkeys, messages, broadcasts
-
-    def preparations(self):
-        self.bitmessage_api = xmlrpc.client.ServerProxy(self.create_bitmessage_api())
-        self.run_bitmessage()
-        print(self.run_bm.pid)
 
 if __name__ == "__main__":
     print('The API should never be called directly.')
