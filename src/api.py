@@ -191,7 +191,7 @@ class Taskhive(object):
 
     def shutdown_bitmessage(self):
         try:
-            api.shutdown()
+            self.api.shutdown()
         except socket.error:
             sys.exit(0)
         except(AttributeError, OSError):
@@ -212,14 +212,14 @@ class Taskhive(object):
     # Tests the API connection to bitmessage.
     # Returns True if it is connected.
     def api_check(self):
-        result = api.add(2,3)
+        result = self.api.add(2,3)
         if result == 5:
             return True
         else:
             return False
 
     def valid_address(self, address):
-        address_information = json.loads(api.decodeAddress(address))
+        address_information = json.loads(self.api.decodeAddress(address))
         if address_information.get('status') == 'success':
             return True
         else:
@@ -229,12 +229,12 @@ class Taskhive(object):
         # passphrase must be encoded
         passphrase = base64.b64encode(passphrase)
         # TODO - stream_number shouldn't be hardcoded, but it's all we have right now.
-        return(api.getDeterministicAddress(passphrase, version_number=4, stream_number=1))
+        return(self.api.getDeterministicAddress(passphrase, version_number=4, stream_number=1))
 
     def subscribe(self, address, label):
         if valid_address(address):
             label = base64.b64encode(label)
-            subscription_check = api.addSubscription(address, label)
+            subscription_check = self.api.addSubscription(address, label)
             if subscription_check == 'Added subscription.':
                 return True
             else:
@@ -243,25 +243,25 @@ class Taskhive(object):
             return False
 
     def unsubscribe(self, address):
-        if valid_address(address):
-            verify = api.deleteSubscription(address)
+        if self.valid_address(address):
+            verify = self.api.deleteSubscription(address)
             if verify:
                 return True
             else:
                 return False
 
     def list_subscriptions(self):
-        total_subscriptions = json.loads(api.listSubscriptions())
+        total_subscriptions = json.loads(self.api.listSubscriptions())
         return total_subscriptions
 
     def create_chan(self, password):
         password = base64.b64encode(password)
-        return(api.createChan(password))
+        return(self.api.createChan(password))
  
     def join_chan(self, address, password):
-        if valid_address(address):
+        if self.valid_address(address):
             password = base64.b64encode(password)
-            joining_channel = api.joinChan(password, address)
+            joining_channel = self.api.joinChan(password, address)
             if joining_channel == 'success':
                 return True
             # TODO - This should probably be done better
@@ -269,8 +269,8 @@ class Taskhive(object):
                 return 'Already participating.'
 
     def leave_chan(self, address):
-        if valid_address(address):
-            leaving_channel = api.leaveChan(address)
+        if self.valid_address(address):
+            leaving_channel = self.api.leaveChan(address)
             if leaving_channel == 'success':
                 return True
             else:
@@ -278,7 +278,7 @@ class Taskhive(object):
 
     # Lists all of the addresses and their info
     def list_add(self):
-        json_load_addresses = json.loads(api.listAddresses())
+        json_load_addresses = json.loads(self.api.listAddresses())
         json_addresses = json_load_addresses['addresses']
         if not json_addresses:
             return False
@@ -291,25 +291,25 @@ class Taskhive(object):
         # Generates a new address with the user defined label, non-deterministic
         if deterministic is False:
             address_label = base64.b64encode(label)
-            generated_address = api.createRandomAddress(address_label)
+            generated_address = self.api.createRandomAddress(address_label)
             return generated_address
         # Generates a new deterministic address with the user inputs
         elif deterministic is True:
             passphrase = base64.b64encode(passphrase)
-            generated_address = api.createDeterministicAddresses(passphrase, number_of_addresses, address_version_number, stream_number, ripe)
+            generated_address = self.api.createDeterministicAddresses(passphrase, number_of_addresses, address_version_number, stream_number, ripe)
             return generated_address
         else:
             return False
 
     def delete_address(self, address):
-        json_load_addresses = json.loads(api.listAddresses())
+        json_load_addresses = json.loads(self.api.listAddresses())
         json_addresses = json_load_addresses['addresses']
         number_of_addresses = len(json_addresses['addresses'])
         if not json_addresses:
             return False
         else:
-            if valid_address(address):
-                delete_this = api.deleteAddress(address)
+            if self.valid_address(address):
+                delete_this = self.api.deleteAddress(address)
                 if delete_this == 'success':
                     return True
                 else:
@@ -317,45 +317,45 @@ class Taskhive(object):
 
     def send_message(self, to_address, from_address, subject, message):
         # TODO - Was using .encode('UTF-8'), not needed?
-        json_addresses = json.loads(api.listAddresses())
-        if not valid_address(to_address):
+        json_addresses = json.loads(self.api.listAddresses())
+        if not self.valid_address(to_address):
             return 'invalid to address'
-        if not valid_address(from_address):
+        if not self.valid_address(from_address):
             return 'invalid from address'
         else:
             if from_address not in json_addresses:
                 return 'not our address'
         subject = base64.b64encode(subject)
         message = base64.b64encode(message)
-        ack_data = api.sendMessage(to_address, from_address, subject, message)
-        sending_message = api.getStatus(ack_data)
+        ack_data = self.api.sendMessage(to_address, from_address, subject, message)
+        sending_message = self.api.getStatus(ack_data)
         return sending_message
 
     def send_broadcast(self, from_address, subject, message):
-        json_addresses = json.loads(api.listAddresses())
-        if not valid_address(from_address):
+        json_addresses = json.loads(self.api.listAddresses())
+        if not self.valid_address(from_address):
             return 'invalid from address'
         else:
             if from_address not in json_addresses:
                 return 'not our address'
         subject = base64.b64encode(subject)
         message = base64.b64encode(message)
-        ack_data = api.sendBroadcast(from_address, subject, message)
-        sending_broadcast = api.getStatus(ack_data)
+        ack_data = self.api.sendBroadcast(from_address, subject, message)
+        sending_broadcast = self.api.getStatus(ack_data)
         return sending_broadcast
 
     def inbox(self, unread_only):
-        json_messages = json.loads(api.getAllInboxMessages())
+        json_messages = json.loads(self.api.getAllInboxMessages())
         inbox_messages = json_messages['inboxMessages']
         return inbox_messages
 
     def outbox(self):
-        json_messages = json.loads(api.getAllSentMessages())
+        json_messages = json.loads(self.api.getAllSentMessages())
         outbox_outbox = json_messages['sentMessages']
         return json_outbox
 
     def read_sent_message(self, message_number):
-        outbox_messages = json.loads(api.getAllSentMessages())
+        outbox_messages = json.loads(self.api.getAllSentMessages())
         total_messages = len(outbox_messages['sentMessages'])
         if message_number >= total_messages:
             return 'invalid message number'
@@ -364,7 +364,7 @@ class Taskhive(object):
 
     # Opens an inbox message for reading
     def read_inbox_message(self, message_number):
-        inbox_messages = json.loads(api.getAllInboxMessages())
+        inbox_messages = json.loads(self.api.getAllInboxMessages())
         total_messages = len(inbox_messages['inboxMessages'])
         if message_number >= total_messages:
             return 'invalid message number'
@@ -426,7 +426,7 @@ class Taskhive(object):
 #    def read_terminate_json(self):
 
     def unread_message_info(self):
-        inbox_messages = json.loads(api.getAllInboxMessages())
+        inbox_messages = json.loads(self.api.getAllInboxMessages())
         CONFIG.read(KEYS_FILE)
         unread_messages = 0
         for each in inbox_messages['inboxMessages']:
@@ -440,7 +440,7 @@ class Taskhive(object):
             return 0
 
     def client_status(self):
-        status = json.loads(api.clientStatus())
+        status = json.loads(self.api.clientStatus())
         if status['networkStatus'] == 'notConnected':
             connection = 'RED'
         elif status['networkStatus'] == 'connectedButHaveNotReceivedIncomingConnections':
@@ -450,7 +450,7 @@ class Taskhive(object):
         return connection
 
     def client_connections(self):
-        status = json.loads(api.clientStatus())
+        status = json.loads(self.api.clientStatus())
         connections = status['networkConnections']
         pubkeys = status['numberOfPubkeysProcessed']
         messages = status['numberOfMessagesProcessed']
@@ -458,9 +458,12 @@ class Taskhive(object):
         return connections, pubkeys, messages, broadcasts
 
     def preparations(self):
-        bitmessage_api = xmlrpc.client.ServerProxy(self.create_bitmessage_api())
+        self.bitmessage_api = xmlrpc.client.ServerProxy(self.create_bitmessage_api())
         self.run_bitmessage()
+        print(self.run_bm.pid)
 
-if __name__ == "__main__":
-    print('The API should never be called directly.')
-    sys.exit(0)
+#if __name__ == "__main__":
+#    print('The API should never be called directly.')
+#    sys.exit(0)
+
+Taskhive().preparations()
