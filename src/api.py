@@ -15,10 +15,10 @@ import os
 import random
 import socket
 import string
+import subprocess
 import sys
 import xml
 import psutil
-import subprocess
 import xmlrpc.client
 import address_generator
 from address_generator import VERSION_BYTE
@@ -29,6 +29,7 @@ CONFIG = configparser.ConfigParser()
 PROXY_TYPE_DICT = {'none': 'none', 'socks4a': 'SOCKS4a', 'socks5': 'SOCKS5'}
 SECURE_RANDOM = random.SystemRandom()
 RANDOM_INT = random.randint(50, 150)
+RANDOM_API_PORT = random.randint(17600, 17650)
 
 TASKHIVE_DIR = os.path.dirname(os.path.abspath(__file__))
 BITMESSAGE_DIR = os.path.join(TASKHIVE_DIR, 'bitmessage')
@@ -140,6 +141,8 @@ class Taskhive(object):
         with open(self.keys_file, 'wb') as configfile:
             CONFIG.write(configfile)
 
+#    def ask_proxy_questions(self):
+
     def verify_settings(self, keyfile):
         CONFIG.read(keyfile)
         missing_options = []
@@ -219,6 +222,20 @@ class Taskhive(object):
         else:
             return 'no taskhivekeys section'
 
+    def lookup_appdata_folder(self):
+        if sys.platform.startswith('darwin'):
+            if 'HOME' in os.environ:
+                keys_path = os.path.join(os.environ['HOME'],
+                                         'Library/Application support/',
+                                         APPNAME)
+            else:
+                return 'can not detect darwin keys_path'
+        elif sys.platform.startswith('win'):
+            keys_path = os.path.join(os.environ['APPDATA'], APPNAME)
+        else:
+            keys_path = os.path.join(os.path.expanduser('~'), '.config', APPNAME)
+        return keys_path
+
     def find_running_bitmessage_port(self):
         for process in psutil.process_iter():
             cmdline = process.cmdline()
@@ -228,18 +245,33 @@ class Taskhive(object):
                     for x in process.open_files():
                         break
                     keysfile = os.path.join(os.path.dirname(x.path), 'keys.dat')
+                    if not os.path.isfile(keysfile):
+                        keysfile = os.path.join(self.lookup_appdata_folder(), 'keys.dat')
+                        if not os.path.isfile(keysfile):
+                            # this should never happen
+                            print('detected an open bitmessage but can not find keys.dat file')
                     if os.path.isfile(keysfile):
                         CONFIG.read(keysfile)
                         try:
                             bitmessage_port = CONFIG.getint('bitmessagesettings', 'port')
                         except configparser.NoOptionError:
-                            raise APIError(5, 'configuration information is missing. information: [port], file: [{0}]'.format(keysfile))
+                            print('port is missing from', keysfile)
+#                            logger.log('5 - configuration information is missing. information: [port], file: [{0}]'.format(keysfile))
                         except configparser.NoSectionError:
-                           raise APIError(5, 'configuration information is missing. information: [bitmessagesettings], file: [{0}]'.format(keysfile))
-                        else:
-                            self.bitmessage_dict[process.pid]['file'] = each
-                            self.bitmessage_dict[process.pid]['port'] = bitmessage_port
-                            return json.dumps(self.bitmessage_dict, separators=(',',': '))
+                            print('bitmessagesettings section is missing from', keysfile)
+#                            logger.log('5 - configuration information is missing. information: [bitmessagesettings], file: [{0}]'.format(keysfile))
+                        try:
+                            bitmessage_apiport = CONFIG.getint('bitmessagesettings', 'apiport')
+                        except configparser.NoOptionError:
+                            print('apiport is missing from', keysfile)
+#                            logger.log('5 - configuration information is missing. information: [apiport], file: [{0}]'.format(keysfile))
+                        except configparser.NoSectionError:
+                            print('bitmessagesettings section is missing from', keysfile)
+#                            logger.log('5 - configuration information is missing. information: [bitmessagesettings], file: [{0}]'.format(keysfile))
+                        self.bitmessage_dict[process.pid]['file'] = each
+                        self.bitmessage_dict[process.pid]['port'] = bitmessage_port
+                        self.bitmessage_dict[process.pid]['apiport'] = bitmessage_apiport
+                        return json.dumps(self.bitmessage_dict, separators=(',',': '))
                     else:
 #                        logger.warn('Taskhive API Error - Code:(4) Message:(keys.dat not found, file: [{0}]'.format(keysfile))
                         raise APIError(4, 'keys.dat not found, file: [{0}]'.format(keysfile))
@@ -455,11 +487,11 @@ class Taskhive(object):
 #   [{
 #   "task_data":{
 #   "task_type":"offer",
-#   "task_categories":[ A1, C4C1, F122, … ],
+#   "task_categories":[ A1, C4C1, F122, ... ],
 #   "task_title":"Write a short story for my cat blog",
 #   "task_body":"I have a cat blog that needs a story written for it. I will pay for a story about cats.",
 #   "task_keywords":[ "cats", "blog", "writing"],
-#   "task_references":[ "URL1", "URL2", … ],
+#   "task_references":[ "URL1", "URL2", ... ],
 #   "task_cost":"0.001",
 #   "task_currency":"BTC",
 #   "task_payment_rate_type":"task",
@@ -536,6 +568,9 @@ class Taskhive(object):
         messages = status['numberOfMessagesProcessed']
         broadcasts = status['numberOfBroadcastsProcessed']
         return connections, pubkeys, messages, broadcasts
+
+    def preparations(self):
+        self.run_bitmessage()
 
 if __name__ == "__main__":
     print('The API should never be called directly.')
