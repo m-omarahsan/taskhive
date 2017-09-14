@@ -77,17 +77,87 @@ class Taskhive(object):
         self.run_bm = ''
         self.bitmessage_dict = {}
 
+    def find_running_bitmessage_port(self):
+        self.bitmessage_dict = {}
+        for process in psutil.process_iter():
+            cmdline = process.cmdline()
+            for each in cmdline:
+                if 'bitmessagemain' in each:
+                    self.bitmessage_dict[process.pid] = {}
+                    for x in process.open_files():
+                        break
+                    keysfile = os.path.join(os.path.dirname(x.path), 'keys.dat')
+                    if not os.path.isfile(keysfile):
+                        keysfile = os.path.join(self.lookup_appdata_folder(), 'keys.dat')
+                        if not os.path.isfile(keysfile):
+                            # this should never happen
+                            print('detected an open bitmessage but can not find keys.dat file')
+                    if os.path.isfile(keysfile):
+                        CONFIG.read(keysfile)
+                        try:
+                            bitmessage_port = CONFIG.getint('bitmessagesettings', 'port')
+                        except configparser.NoOptionError:
+                            print('port is missing from', keysfile)
+#                            logger.log('5 - configuration information is missing. information: [port], file: [{0}]'.format(keysfile))
+                        except configparser.NoSectionError:
+                            print('bitmessagesettings section is missing from', keysfile)
+#                            logger.log('5 - configuration information is missing. information: [bitmessagesettings], file: [{0}]'.format(keysfile))
+                        try:
+                            bitmessage_apiport = CONFIG.getint('bitmessagesettings', 'apiport')
+                        except configparser.NoOptionError:
+                            print('apiport is missing from', keysfile)
+#                            logger.log('5 - configuration information is missing. information: [apiport], file: [{0}]'.format(keysfile))
+                        except configparser.NoSectionError:
+                            print('bitmessagesettings section is missing from', keysfile)
+#                            logger.log('5 - configuration information is missing. information: [bitmessagesettings], file: [{0}]'.format(keysfile))
+                        self.bitmessage_dict[process.pid]['file'] = each
+                        self.bitmessage_dict[process.pid]['port'] = bitmessage_port
+                        self.bitmessage_dict[process.pid]['apiport'] = bitmessage_apiport
+                        return json.dumps(self.bitmessage_dict, separators=(',',': '))
+                    else:
+#                        logger.warn('Taskhive API Error - Code:(4) Message:(keys.dat not found, file: [{0}]'.format(keysfile))
+                        raise APIError(4, 'keys.dat not found, file: [{0}]'.format(keysfile))
+                else:
+                    pass
+
+    def bitmessage_port_picker(self):
+        check_bitmessage_ports = self.find_running_bitmessage_port()
+        port_list = []
+        apiport_list = []
+        bitmessage_port = None
+        bitmessage_apiport = None
+        for each in check_bitmessage_ports.values():
+            port_list.append(each['port'])
+            apiport_list.append(each['apiport'])
+        for each in range(8444, 8501):
+            if each not in port_list:
+                bitmessage_port = each
+                break
+        for each in range(17600, 17651):
+            if each not in apiport_list:
+                bitmessage_apiport = each
+                break
+        # This should never happen, because that would mean 66 ports are
+        # being taken up for the Bitmessage port, or 50 for the apiport.
+        # This should be done better, but even psutil isn't giving us
+        # xmlrpc ports in-use.
+        if bitmessage_port is None or bitmessage_apiport is None: 
+            return None
+        else:
+            return bitmessage_port, bitmessage_apiport
+
     def create_settings(self):
+        bitmessage_port, bitmessage_apiport = self.bitmessage_port_picker()
         try:
             CONFIG.add_section('bitmessagesettings')
         except ConfigParser.DuplicateSectionError:
             pass
-        CONFIG.set('bitmessagesettings', 'port', '8444')
+        CONFIG.set('bitmessagesettings', 'port', bitmessage_port)
         CONFIG.set('bitmessagesettings', 'settingsversion', '10')
         # 17600 - 17650 is set for OnionShare in the Tails OS.
         # If this is randomized, it won't work.
         # Thus, won't connect using xmlrpclib.
-        CONFIG.set('bitmessagesettings', 'apiport', '17650')
+        CONFIG.set('bitmessagesettings', 'apiport', bitmessage_apiport)
         CONFIG.set('bitmessagesettings', 'apiinterface', '127.0.0.1')
         CONFIG.set('bitmessagesettings', 'apiusername',
                    ''.join([SECURE_RANDOM.choice(CHARACTERS) for x in range(RANDOM_INT)]))
@@ -235,48 +305,6 @@ class Taskhive(object):
         else:
             keys_path = os.path.join(os.path.expanduser('~'), '.config', APPNAME)
         return keys_path
-
-    def find_running_bitmessage_port(self):
-        for process in psutil.process_iter():
-            cmdline = process.cmdline()
-            for each in cmdline:
-                if 'bitmessagemain' in each:
-                    self.bitmessage_dict[process.pid] = {}
-                    for x in process.open_files():
-                        break
-                    keysfile = os.path.join(os.path.dirname(x.path), 'keys.dat')
-                    if not os.path.isfile(keysfile):
-                        keysfile = os.path.join(self.lookup_appdata_folder(), 'keys.dat')
-                        if not os.path.isfile(keysfile):
-                            # this should never happen
-                            print('detected an open bitmessage but can not find keys.dat file')
-                    if os.path.isfile(keysfile):
-                        CONFIG.read(keysfile)
-                        try:
-                            bitmessage_port = CONFIG.getint('bitmessagesettings', 'port')
-                        except configparser.NoOptionError:
-                            print('port is missing from', keysfile)
-#                            logger.log('5 - configuration information is missing. information: [port], file: [{0}]'.format(keysfile))
-                        except configparser.NoSectionError:
-                            print('bitmessagesettings section is missing from', keysfile)
-#                            logger.log('5 - configuration information is missing. information: [bitmessagesettings], file: [{0}]'.format(keysfile))
-                        try:
-                            bitmessage_apiport = CONFIG.getint('bitmessagesettings', 'apiport')
-                        except configparser.NoOptionError:
-                            print('apiport is missing from', keysfile)
-#                            logger.log('5 - configuration information is missing. information: [apiport], file: [{0}]'.format(keysfile))
-                        except configparser.NoSectionError:
-                            print('bitmessagesettings section is missing from', keysfile)
-#                            logger.log('5 - configuration information is missing. information: [bitmessagesettings], file: [{0}]'.format(keysfile))
-                        self.bitmessage_dict[process.pid]['file'] = each
-                        self.bitmessage_dict[process.pid]['port'] = bitmessage_port
-                        self.bitmessage_dict[process.pid]['apiport'] = bitmessage_apiport
-                        return json.dumps(self.bitmessage_dict, separators=(',',': '))
-                    else:
-#                        logger.warn('Taskhive API Error - Code:(4) Message:(keys.dat not found, file: [{0}]'.format(keysfile))
-                        raise APIError(4, 'keys.dat not found, file: [{0}]'.format(keysfile))
-                else:
-                    pass
 
     def run_bitmessage(self):
         try:
