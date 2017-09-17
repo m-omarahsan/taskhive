@@ -10,6 +10,7 @@
 import base64
 import configparser
 import datetime
+import ipaddress
 import json
 import os
 import random
@@ -22,14 +23,14 @@ import psutil
 import xmlrpc.client
 import address_generator
 from address_generator import VERSION_BYTE
+from change import CRYPTO_COINS
+from change import CURRENCIES
 
 APPNAME = 'Taskhive'
 CHARACTERS = string.digits + string.ascii_letters
 CONFIG = configparser.ConfigParser()
-PROXY_TYPE_DICT = {'none': 'none', 'socks4a': 'SOCKS4a', 'socks5': 'SOCKS5'}
 SECURE_RANDOM = random.SystemRandom()
 RANDOM_INT = random.randint(50, 150)
-RANDOM_API_PORT = random.randint(17600, 17650)
 
 TASKHIVE_DIR = os.path.dirname(os.path.abspath(__file__))
 BITMESSAGE_DIR = os.path.join(TASKHIVE_DIR, 'bitmessage')
@@ -48,7 +49,6 @@ EXPECTED_SETTINGS = frozenset(['apienabled','apiinterface','apipassword',
 'socksport','socksproxytype','socksusername','startintray','startonlogon',
 'stopresendingafterxdays','stopresendingafterxmonths','timeformat','trayonclose',
 'ttl','useidenticons','userlocale','willinglysendtomobile'])
-
 
 # error codes
 #  0 - quitting voluntarily
@@ -133,6 +133,9 @@ class Taskhive(object):
             if each not in port_list:
                 bitmessage_port = each
                 break
+        # 17600 - 17650 is set for OnionShare in the Tails OS.
+        # If this is randomized, it won't work.
+        # Thus, won't connect using xmlrpclib.
         for each in range(17600, 17651):
             if each not in apiport_list:
                 bitmessage_apiport = each
@@ -154,9 +157,6 @@ class Taskhive(object):
             pass
         CONFIG.set('bitmessagesettings', 'port', bitmessage_port)
         CONFIG.set('bitmessagesettings', 'settingsversion', '10')
-        # 17600 - 17650 is set for OnionShare in the Tails OS.
-        # If this is randomized, it won't work.
-        # Thus, won't connect using xmlrpclib.
         CONFIG.set('bitmessagesettings', 'apiport', bitmessage_apiport)
         CONFIG.set('bitmessagesettings', 'apiinterface', '127.0.0.1')
         CONFIG.set('bitmessagesettings', 'apiusername',
@@ -170,9 +170,9 @@ class Taskhive(object):
         CONFIG.set('bitmessagesettings', 'minimizetotray', 'False')
         CONFIG.set('bitmessagesettings', 'showtraynotifications', 'True')
         CONFIG.set('bitmessagesettings', 'startintray', 'False')
-        CONFIG.set('bitmessagesettings', 'socksproxytype', 'SOCKS5')
-        CONFIG.set('bitmessagesettings', 'sockshostname', 'localhost')
-        CONFIG.set('bitmessagesettings', 'socksport', '9050')
+        CONFIG.set('bitmessagesettings', 'socksproxytype', '')
+        CONFIG.set('bitmessagesettings', 'sockshostname', '')
+        CONFIG.set('bitmessagesettings', 'socksport', '')
         CONFIG.set('bitmessagesettings', 'socksauthentication', 'False')
         CONFIG.set('bitmessagesettings', 'sockslisten', 'False')
         CONFIG.set('bitmessagesettings', 'socksusername', '')
@@ -200,23 +200,40 @@ class Taskhive(object):
         CONFIG.set('bitmessagesettings', 'namecoinrpchost', 'localhost')
         CONFIG.set('bitmessagesettings', 'namecoinrpcuser', '')
         CONFIG.set('bitmessagesettings', 'namecoinrpcpassword', '')
-        CONFIG.set('bitmessagesettings', 'namecoinrpcport', '8336')
+        CONFIG.set('bitmessagesettings', 'namecoinrpcport', '')
         CONFIG.set('bitmessagesettings', 'sendoutgoingconnections', 'True')
         CONFIG.set('bitmessagesettings', 'onionhostname', '')
-        CONFIG.set('bitmessagesettings', 'onionbindip', '127.0.0.1')
+        CONFIG.set('bitmessagesettings', 'onionbindip', '')
         CONFIG.set('bitmessagesettings', 'hidetrayconnectionnotifications', 'False')
         CONFIG.set('bitmessagesettings', 'trayonclose', 'False')
         CONFIG.set('bitmessagesettings', 'willinglysendtomobile', 'False')
         CONFIG.set('bitmessagesettings', 'opencl', 'None')
-        with open(self.keys_file, 'wb') as configfile:
+        with open(self.KEYS_FILE, 'wb') as configfile:
             CONFIG.write(configfile)
 
-#    def ask_proxy_questions(self):
+#    def set_proxy_hostname(self, hostname):
+#        CONFIG.read(KEY_FILE)
+#        try:
+#            ipaddress.ip_address(hostname)
+#        except ValueError:
+#            return 'invalid hostname'
+#        else:
+#            CONFIG.set('bitmessagesettings', 'sockshostname', hostname)
+#            with open(self.KEYS_FILE, 'wb') as configfile:
+#                CONFIG.write(configfile)
+
+#    def set_proxy_type(self, proxy):
+#        proxy_types = {'none': 'none', 'socks4a': 'SOCKS4a', 'socks5': 'SOCKS5'}
+#        if proxy in proxy_types:
+#            CONFIG.set('bitmessagesettings', 'socksproxytype', proxy)
+#            with open(self.KEYS_FILE, 'wb') as configfile:
+#                CONFIG.write(configfile)
 
     def verify_settings(self, keyfile):
         CONFIG.read(keyfile)
         missing_options = []
         extra_options = []
+        incorrect_options = []
         if 'bitmessagesettings' in CONFIG.sections():
             bitmessagesettings = CONFIG.options('bitmessagesettings')
             for each in EXPECTED_SETTINGS:
@@ -283,12 +300,13 @@ class Taskhive(object):
         self.keys_file_exists(KEYS_FILE)
         self.verify_settings(KEYS_FILE)
         if 'taskhivekeys' in CONFIG.sections():
-            CONFIG.add_section('taskhivekeys')
+            #try:
             private_key = CONFIG.get('taskhivekeys', 'private')
             public_key = CONFIG.get('taskhivekeys', 'public')
             address = CONFIG.get('taskhivekeys', 'address')
             address_encoded = CONFIG.get('taskhivekeys', 'address_encoded')
-            return private_key, public_key, address, address_encoded            
+            #except configparser.NoOptionError:
+            return private_key, public_key, address, address_encoded
         else:
             return 'no taskhivekeys section'
 
@@ -389,6 +407,8 @@ class Taskhive(object):
                 return True
             else:
                 return False
+        else:
+            return 'invalid address'
 
     def list_subscriptions(self):
         total_subscriptions = json.loads(self.api.listSubscriptions())
@@ -407,6 +427,8 @@ class Taskhive(object):
             # TODO - This should probably be done better
             elif joining_channel.endswith('list index out of range'):
                 return 'Already participating.'
+        else:
+            return 'invalid address'
 
     def leave_chan(self, address):
         if self.valid_address(address):
@@ -415,6 +437,8 @@ class Taskhive(object):
                 return True
             else:
                 return False
+        else:
+            return 'invalid address'
 
     # Lists all of the addresses and their info
     def list_add(self):
@@ -454,6 +478,8 @@ class Taskhive(object):
                     return True
                 else:
                     return delete_this
+            else:
+                return 'invalid address'
 
     def send_message(self, to_address, from_address, subject, message):
         # TODO - Was using .encode('UTF-8'), not needed?
