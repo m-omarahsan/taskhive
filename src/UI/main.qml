@@ -56,9 +56,9 @@ QtObject {
                         Button {
                             height: 100
                             width: 100
-                            text: "Click me plz"
+                            text: "Click me to show the Wizard"
                             onClicked: {
-                                var fileComponent = Qt.createComponent("FileUpload.qml")
+                                var fileComponent = Qt.createComponent("Wizard/Wizard.qml")
                                 console.log(fileComponent.errorString())
                                 var win = fileComponent.createObject(window)
                                 win.show()
