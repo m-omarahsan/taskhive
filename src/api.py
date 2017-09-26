@@ -10,23 +10,25 @@
 import base64
 import configparser
 import datetime
+import ipaddress
 import json
 import os
 import random
 import socket
 import string
+import subprocess
 import sys
 import xml
 import psutil
-import subprocess
 import xmlrpc.client
 import address_generator
 from address_generator import VERSION_BYTE
+from change import CRYPTO_COINS
+from change import CURRENCIES
 
 APPNAME = 'Taskhive'
 CHARACTERS = string.digits + string.ascii_letters
 CONFIG = configparser.ConfigParser()
-PROXY_TYPE_DICT = {'none': 'none', 'socks4a': 'SOCKS4a', 'socks5': 'SOCKS5'}
 SECURE_RANDOM = random.SystemRandom()
 RANDOM_INT = random.randint(50, 150)
 
@@ -47,7 +49,6 @@ EXPECTED_SETTINGS = frozenset(['apienabled','apiinterface','apipassword',
 'socksport','socksproxytype','socksusername','startintray','startonlogon',
 'stopresendingafterxdays','stopresendingafterxmonths','timeformat','trayonclose',
 'ttl','useidenticons','userlocale','willinglysendtomobile'])
-
 
 # error codes
 #  0 - quitting voluntarily
@@ -76,17 +77,87 @@ class Taskhive(object):
         self.run_bm = ''
         self.bitmessage_dict = {}
 
+    def find_running_bitmessage_port(self):
+        self.bitmessage_dict = {}
+        for process in psutil.process_iter():
+            cmdline = process.cmdline()
+            for each in cmdline:
+                if 'bitmessagemain' in each:
+                    self.bitmessage_dict[process.pid] = {}
+                    for x in process.open_files():
+                        break
+                    keysfile = os.path.join(os.path.dirname(x.path), 'keys.dat')
+                    if not os.path.isfile(keysfile):
+                        keysfile = os.path.join(self.lookup_appdata_folder(), 'keys.dat')
+                        if not os.path.isfile(keysfile):
+                            # this should never happen
+                            print('detected an open bitmessage but can not find keys.dat file')
+                    if os.path.isfile(keysfile):
+                        CONFIG.read(keysfile)
+                        try:
+                            bitmessage_port = CONFIG.getint('bitmessagesettings', 'port')
+                        except configparser.NoOptionError:
+                            print('port is missing from', keysfile)
+#                            logger.log('5 - configuration information is missing. information: [port], file: [{0}]'.format(keysfile))
+                        except configparser.NoSectionError:
+                            print('bitmessagesettings section is missing from', keysfile)
+#                            logger.log('5 - configuration information is missing. information: [bitmessagesettings], file: [{0}]'.format(keysfile))
+                        try:
+                            bitmessage_apiport = CONFIG.getint('bitmessagesettings', 'apiport')
+                        except configparser.NoOptionError:
+                            print('apiport is missing from', keysfile)
+#                            logger.log('5 - configuration information is missing. information: [apiport], file: [{0}]'.format(keysfile))
+                        except configparser.NoSectionError:
+                            print('bitmessagesettings section is missing from', keysfile)
+#                            logger.log('5 - configuration information is missing. information: [bitmessagesettings], file: [{0}]'.format(keysfile))
+                        self.bitmessage_dict[process.pid]['file'] = each
+                        self.bitmessage_dict[process.pid]['port'] = bitmessage_port
+                        self.bitmessage_dict[process.pid]['apiport'] = bitmessage_apiport
+                        return json.dumps(self.bitmessage_dict, separators=(',',': '))
+                    else:
+#                        logger.warn('Taskhive API Error - Code:(4) Message:(keys.dat not found, file: [{0}]'.format(keysfile))
+                        raise APIError(4, 'keys.dat not found, file: [{0}]'.format(keysfile))
+                else:
+                    pass
+
+    def bitmessage_port_picker(self):
+        check_bitmessage_ports = self.find_running_bitmessage_port()
+        port_list = []
+        apiport_list = []
+        bitmessage_port = None
+        bitmessage_apiport = None
+        for each in check_bitmessage_ports.values():
+            port_list.append(each['port'])
+            apiport_list.append(each['apiport'])
+        for each in range(8444, 8501):
+            if each not in port_list:
+                bitmessage_port = each
+                break
+        # 17600 - 17650 is set for OnionShare in the Tails OS.
+        # If this is randomized, it won't work.
+        # Thus, won't connect using xmlrpclib.
+        for each in range(17600, 17651):
+            if each not in apiport_list:
+                bitmessage_apiport = each
+                break
+        # This should never happen, because that would mean 66 ports are
+        # being taken up for the Bitmessage port, or 50 for the apiport.
+        # This should be done better, but even psutil isn't giving us
+        # xmlrpc ports in-use.
+        if bitmessage_port is None or bitmessage_apiport is None: 
+            return None
+        else:
+            return bitmessage_port, bitmessage_apiport
+
     def create_settings(self):
+        bitmessage_port, bitmessage_apiport = self.bitmessage_port_picker()
         try:
             CONFIG.add_section('bitmessagesettings')
         except ConfigParser.DuplicateSectionError:
             pass
-        CONFIG.set('bitmessagesettings', 'port', '8444')
+        CONFIG.set('bitmessagesettings', 'port', bitmessage_port)
         CONFIG.set('bitmessagesettings', 'settingsversion', '10')
-        # 17600 - 17650 is set for OnionShare in the Tails OS.
-        # If this is randomized, it won't work.
-        # Thus, won't connect using xmlrpclib.
-        CONFIG.set('bitmessagesettings', 'apiport', '17650')
+        CONFIG.set('bitmessagesettings', 'apiport', bitmessage_apiport)
         CONFIG.set('bitmessagesettings', 'apiinterface', '127.0.0.1')
         CONFIG.set('bitmessagesettings', 'apiusername',
                    ''.join([SECURE_RANDOM.choice(CHARACTERS) for x in range(RANDOM_INT)]))
@@ -99,9 +170,9 @@ class Taskhive(object):
         CONFIG.set('bitmessagesettings', 'minimizetotray', 'False')
         CONFIG.set('bitmessagesettings', 'showtraynotifications', 'True')
         CONFIG.set('bitmessagesettings', 'startintray', 'False')
-        CONFIG.set('bitmessagesettings', 'socksproxytype', 'SOCKS5')
-        CONFIG.set('bitmessagesettings', 'sockshostname', 'localhost')
-        CONFIG.set('bitmessagesettings', 'socksport', '9050')
+        CONFIG.set('bitmessagesettings', 'socksproxytype', '')
+        CONFIG.set('bitmessagesettings', 'sockshostname', '')
+        CONFIG.set('bitmessagesettings', 'socksport', '')
         CONFIG.set('bitmessagesettings', 'socksauthentication', 'False')
         CONFIG.set('bitmessagesettings', 'sockslisten', 'False')
         CONFIG.set('bitmessagesettings', 'socksusername', '')
@@ -129,21 +200,40 @@ class Taskhive(object):
         CONFIG.set('bitmessagesettings', 'namecoinrpchost', 'localhost')
         CONFIG.set('bitmessagesettings', 'namecoinrpcuser', '')
         CONFIG.set('bitmessagesettings', 'namecoinrpcpassword', '')
-        CONFIG.set('bitmessagesettings', 'namecoinrpcport', '8336')
+        CONFIG.set('bitmessagesettings', 'namecoinrpcport', '')
         CONFIG.set('bitmessagesettings', 'sendoutgoingconnections', 'True')
         CONFIG.set('bitmessagesettings', 'onionhostname', '')
-        CONFIG.set('bitmessagesettings', 'onionbindip', '127.0.0.1')
+        CONFIG.set('bitmessagesettings', 'onionbindip', '')
         CONFIG.set('bitmessagesettings', 'hidetrayconnectionnotifications', 'False')
         CONFIG.set('bitmessagesettings', 'trayonclose', 'False')
         CONFIG.set('bitmessagesettings', 'willinglysendtomobile', 'False')
         CONFIG.set('bitmessagesettings', 'opencl', 'None')
-        with open(self.keys_file, 'wb') as configfile:
+        with open(self.KEYS_FILE, 'wb') as configfile:
             CONFIG.write(configfile)
+
+#    def set_proxy_hostname(self, hostname):
+#        CONFIG.read(KEY_FILE)
+#        try:
+#            ipaddress.ip_address(hostname)
+#        except ValueError:
+#            return 'invalid hostname'
+#        else:
+#            CONFIG.set('bitmessagesettings', 'sockshostname', hostname)
+#            with open(self.KEYS_FILE, 'wb') as configfile:
+#                CONFIG.write(configfile)
+
+#    def set_proxy_type(self, proxy):
+#        proxy_types = {'none': 'none', 'socks4a': 'SOCKS4a', 'socks5': 'SOCKS5'}
+#        if proxy in proxy_types:
+#            CONFIG.set('bitmessagesettings', 'socksproxytype', proxy)
+#            with open(self.KEYS_FILE, 'wb') as configfile:
+#                CONFIG.write(configfile)
 
     def verify_settings(self, keyfile):
         CONFIG.read(keyfile)
         missing_options = []
         extra_options = []
+        incorrect_options = []
         if 'bitmessagesettings' in CONFIG.sections():
             bitmessagesettings = CONFIG.options('bitmessagesettings')
             for each in EXPECTED_SETTINGS:
@@ -210,41 +300,29 @@ class Taskhive(object):
         self.keys_file_exists(KEYS_FILE)
         self.verify_settings(KEYS_FILE)
         if 'taskhivekeys' in CONFIG.sections():
-            CONFIG.add_section('taskhivekeys')
+            #try:
             private_key = CONFIG.get('taskhivekeys', 'private')
             public_key = CONFIG.get('taskhivekeys', 'public')
             address = CONFIG.get('taskhivekeys', 'address')
             address_encoded = CONFIG.get('taskhivekeys', 'address_encoded')
-            return private_key, public_key, address, address_encoded            
+            #except configparser.NoOptionError:
+            return private_key, public_key, address, address_encoded
         else:
             return 'no taskhivekeys section'
 
-    def find_running_bitmessage_port(self):
-        for process in psutil.process_iter():
-            cmdline = process.cmdline()
-            for each in cmdline:
-                if 'bitmessagemain' in each:
-                    self.bitmessage_dict[process.pid] = {}
-                    for x in process.open_files():
-                        break
-                    keysfile = os.path.join(os.path.dirname(x.path), 'keys.dat')
-                    if os.path.isfile(keysfile):
-                        CONFIG.read(keysfile)
-                        try:
-                            bitmessage_port = CONFIG.getint('bitmessagesettings', 'port')
-                        except configparser.NoOptionError:
-                            raise APIError(5, 'configuration information is missing. information: [port], file: [{0}]'.format(keysfile))
-                        except configparser.NoSectionError:
-                           raise APIError(5, 'configuration information is missing. information: [bitmessagesettings], file: [{0}]'.format(keysfile))
-                        else:
-                            self.bitmessage_dict[process.pid]['file'] = each
-                            self.bitmessage_dict[process.pid]['port'] = bitmessage_port
-                            return json.dumps(self.bitmessage_dict, separators=(',',': '))
-                    else:
-#                        logger.warn('Taskhive API Error - Code:(4) Message:(keys.dat not found, file: [{0}]'.format(keysfile))
-                        raise APIError(4, 'keys.dat not found, file: [{0}]'.format(keysfile))
-                else:
-                    pass
+    def lookup_appdata_folder(self):
+        if sys.platform.startswith('darwin'):
+            if 'HOME' in os.environ:
+                keys_path = os.path.join(os.environ['HOME'],
+                                         'Library/Application support/',
+                                         APPNAME)
+            else:
+                return 'can not detect darwin keys_path'
+        elif sys.platform.startswith('win'):
+            keys_path = os.path.join(os.environ['APPDATA'], APPNAME)
+        else:
+            keys_path = os.path.join(os.path.expanduser('~'), '.config', APPNAME)
+        return keys_path
 
     def run_bitmessage(self):
         try:
@@ -329,6 +407,8 @@ class Taskhive(object):
                 return True
             else:
                 return False
+        else:
+            return 'invalid address'
 
     def list_subscriptions(self):
         total_subscriptions = json.loads(self.api.listSubscriptions())
@@ -347,6 +427,8 @@ class Taskhive(object):
             # TODO - This should probably be done better
             elif joining_channel.endswith('list index out of range'):
                 return 'Already participating.'
+        else:
+            return 'invalid address'
 
     def leave_chan(self, address):
         if self.valid_address(address):
@@ -355,6 +437,8 @@ class Taskhive(object):
                 return True
             else:
                 return False
+        else:
+            return 'invalid address'
 
     # Lists all of the addresses and their info
     def list_add(self):
@@ -394,6 +478,8 @@ class Taskhive(object):
                     return True
                 else:
                     return delete_this
+            else:
+                return 'invalid address'
 
     def send_message(self, to_address, from_address, subject, message):
         # TODO - Was using .encode('UTF-8'), not needed?
@@ -455,11 +541,11 @@ class Taskhive(object):
 #   [{
 #   "task_data":{
 #   "task_type":"offer",
-#   "task_categories":[ A1, C4C1, F122, … ],
+#   "task_categories":[ A1, C4C1, F122, ... ],
 #   "task_title":"Write a short story for my cat blog",
 #   "task_body":"I have a cat blog that needs a story written for it. I will pay for a story about cats.",
 #   "task_keywords":[ "cats", "blog", "writing"],
-#   "task_references":[ "URL1", "URL2", … ],
+#   "task_references":[ "URL1", "URL2", ... ],
 #   "task_cost":"0.001",
 #   "task_currency":"BTC",
 #   "task_payment_rate_type":"task",
@@ -536,6 +622,9 @@ class Taskhive(object):
         messages = status['numberOfMessagesProcessed']
         broadcasts = status['numberOfBroadcastsProcessed']
         return connections, pubkeys, messages, broadcasts
+
+    def preparations(self):
+        self.run_bitmessage()
 
 if __name__ == "__main__":
     print('The API should never be called directly.')
