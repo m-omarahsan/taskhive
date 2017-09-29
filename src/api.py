@@ -131,7 +131,7 @@ class Taskhive(object):
             for each in check_bitmessage_ports.values():
                 port_list.append(each['port'])
                 apiport_list.append(each['apiport'])
-        except AttributeError:
+        except (AttributeError, KeyError):
             pass
         # 17600 - 17650 is set for OnionShare in the Tails OS.
         # If this is randomized, it won't work.
@@ -157,17 +157,17 @@ class Taskhive(object):
         bitmessage_port, bitmessage_apiport = self.bitmessage_port_picker()
         try:
             CONFIG.add_section('bitmessagesettings')
-        except ConfigParser.DuplicateSectionError:
+        except configparser.DuplicateSectionError:
             pass
-        CONFIG.set('bitmessagesettings', 'port', bitmessage_port)
+        CONFIG.set('bitmessagesettings', 'port', str(bitmessage_port))
         CONFIG.set('bitmessagesettings', 'settingsversion', '10')
-        CONFIG.set('bitmessagesettings', 'apiport', bitmessage_apiport)
+        CONFIG.set('bitmessagesettings', 'apiport', str(bitmessage_apiport))
         CONFIG.set('bitmessagesettings', 'apiinterface', '127.0.0.1')
         CONFIG.set('bitmessagesettings', 'apiusername',
                    ''.join([SECURE_RANDOM.choice(CHARACTERS) for x in range(RANDOM_INT)]))
         CONFIG.set('bitmessagesettings', 'apipassword',
                    ''.join([SECURE_RANDOM.choice(CHARACTERS) for x in range(RANDOM_INT)]))
-        CONFIG.set('bitmessagesettings', 'daemon', True)
+        CONFIG.set('bitmessagesettings', 'daemon', 'True')
         CONFIG.set('bitmessagesettings', 'timeformat', '%%c')
         CONFIG.set('bitmessagesettings', 'blackwhitelist', 'black')
         CONFIG.set('bitmessagesettings', 'startonlogon', 'False')
@@ -212,8 +212,8 @@ class Taskhive(object):
         CONFIG.set('bitmessagesettings', 'trayonclose', 'False')
         CONFIG.set('bitmessagesettings', 'willinglysendtomobile', 'False')
         CONFIG.set('bitmessagesettings', 'opencl', 'None')
-        with open(KEYS_FILE, 'wb') as configfile:
-            CONFIG.write(configfile)
+        with open(KEYS_FILE, 'w') as configfile:
+           CONFIG.write(configfile)
 
 #    def set_proxy_hostname(self, hostname):
 #        CONFIG.read(KEY_FILE)
@@ -337,7 +337,7 @@ class Taskhive(object):
                                                stderr=subprocess.PIPE,
                                                stdin=subprocess.PIPE,
                                                bufsize=0,
-                                               cwd=TASKHIVE_DIR)
+                                               cwd=TASKHIVE_DIR, shell=True)
             else:
                 self.run_bm = subprocess.Popen(BITMESSAGE_PROGRAM,
                                                stdout=subprocess.PIPE,
