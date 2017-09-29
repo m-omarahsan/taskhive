@@ -202,6 +202,13 @@ def main(argv, app):
     engine.quit.connect(app.quit)
     component = QQmlComponent(engine)
     API = TaskhiveAPI()
+    BitMessage = API.create_bitmessage_api()
+    if BitMessage in ['invalid keys_file settings', 'keyfile does not exist']:
+        API.create_settings()
+    BitMessageAPI = API.run_bitmessage()
+    if API.run_bm.poll() is None:
+        print(API.find_running_bitmessage_port)
+        print('Bitmessage is running')
 
     component.loadUrl(QUrl('UI/main.qml'))
     if component.isReady():
