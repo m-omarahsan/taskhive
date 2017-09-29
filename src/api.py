@@ -80,45 +80,41 @@ class Taskhive(object):
     def find_running_bitmessage_port(self):
         self.bitmessage_dict = {}
         for process in psutil.process_iter():
-            cmdline = process.cmdline()
-            for each in cmdline:
-                if 'bitmessagemain' in each:
-                    self.bitmessage_dict[process.pid] = {}
-                    for x in process.open_files():
+            process_name = process.name()
+            if 'bitmessagemain' in process_name:
+                self.bitmessage_dict[process.pid] = {}
+                print(process.pid)
+                for each in process.cmdline():
+                    if 'bitmessagemain' in each:
+                        process_path = each
                         break
-                    keysfile = os.path.join(os.path.dirname(x.path), 'keys.dat')
-                    if not os.path.isfile(keysfile):
-                        keysfile = os.path.join(self.lookup_appdata_folder(), 'keys.dat')
-                        if not os.path.isfile(keysfile):
-                            # this should never happen
-                            print('detected an open bitmessage but can not find keys.dat file')
+                keysfile = os.path.join(os.path.dirname(process_path), 'keys.dat')
+                if os.path.isfile(keysfile):
+                    CONFIG.read(keysfile)
+                else:
+                    keysfile = os.path.join(self.lookup_appdata_folder(), 'keys.dat')
                     if os.path.isfile(keysfile):
                         CONFIG.read(keysfile)
-                        try:
-                            bitmessage_port = CONFIG.getint('bitmessagesettings', 'port')
-                        except configparser.NoOptionError:
-                            print('port is missing from', keysfile)
-#                            logger.log('5 - configuration information is missing. information: [port], file: [{0}]'.format(keysfile))
-                        except configparser.NoSectionError:
-                            print('bitmessagesettings section is missing from', keysfile)
-#                            logger.log('5 - configuration information is missing. information: [bitmessagesettings], file: [{0}]'.format(keysfile))
-                        try:
-                            bitmessage_apiport = CONFIG.getint('bitmessagesettings', 'apiport')
-                        except configparser.NoOptionError:
-                            print('apiport is missing from', keysfile)
-#                            logger.log('5 - configuration information is missing. information: [apiport], file: [{0}]'.format(keysfile))
-                        except configparser.NoSectionError:
-                            print('bitmessagesettings section is missing from', keysfile)
-#                            logger.log('5 - configuration information is missing. information: [bitmessagesettings], file: [{0}]'.format(keysfile))
-                        self.bitmessage_dict[process.pid]['file'] = each
-                        self.bitmessage_dict[process.pid]['port'] = bitmessage_port
-                        self.bitmessage_dict[process.pid]['apiport'] = bitmessage_apiport
-                        return json.dumps(self.bitmessage_dict, separators=(',',': '))
                     else:
-#                        logger.warn('Taskhive API Error - Code:(4) Message:(keys.dat not found, file: [{0}]'.format(keysfile))
-                        raise APIError(4, 'keys.dat not found, file: [{0}]'.format(keysfile))
-                else:
-                    pass
+                        print('')
+                try:
+                    bitmessage_port = CONFIG.getint('bitmessagesettings', 'port')
+                except configparser.NoOptionError:
+                    print('port is missing from', keysfile)
+                except configparser.NoSectionError:
+                    print('bitmessagesettings section is missing from', keysfile)
+                try:
+                    bitmessage_apiport = CONFIG.getint('bitmessagesettings', 'apiport')
+                except configparser.NoOptionError:
+                    print('apiport is missing from', keysfile)
+                except configparser.NoSectionError:
+                    print('bitmessagesettings section is missing from', keysfile)
+                self.bitmessage_dict[process.pid]['file'] = each
+                self.bitmessage_dict[process.pid]['port'] = bitmessage_port
+                self.bitmessage_dict[process.pid]['apiport'] = bitmessage_apiport
+                return json.dumps(self.bitmessage_dict, separators=(',',': '))
+            else:
+                pass
 
     def bitmessage_port_picker(self):
         check_bitmessage_ports = self.find_running_bitmessage_port()
@@ -276,7 +272,8 @@ class Taskhive(object):
                 self.api = xmlrpc.client.ServerProxy(api_info)
 
             else:
-                return verifying_settings
+                return 'invalid keys_file settings'
+                
         else:
             return 'keyfile does not exist'
 
@@ -343,17 +340,14 @@ class Taskhive(object):
                                                preexec_fn=os.setpgrp,
                                                close_fds=True)
         except OSError:
-#            logger.warn('Taskhive API Error - Code:(3) Message:(can not find our bitmessagemain.py)')
+            logger.warn('Taskhive API Error - Code:(3) Message:(can not find our bitmessagemain.py)')
             raise APIError(3, 'can not find our bitmessagemain.py')
-        except Exception as e:
-            print(e)
 
     def shutdown_bitmessage(self):
         try:
             self.api.shutdown()
-            sys.exit(0)
         except(AttributeError, OSError, socket.error) as e:
-            sys.exit(1)
+            return e
 
     def bitmessagesettings_change_option(self, setting):
         if setting in EXPECTED_SETTINGS:
@@ -420,13 +414,13 @@ class Taskhive(object):
  
     def join_chan(self, address, password):
         if self.valid_address(address):
-            password = base64.b64encode(password)
+            initial_base64 = base64.b64encode(password)
+            password = base64.b64encode(initial_base64)
             joining_channel = self.api.joinChan(password, address)
             if joining_channel == 'success':
                 return True
-            # TODO - This should probably be done better
-            elif joining_channel.endswith('list index out of range'):
-                return 'Already participating.'
+            else:
+                return False
         else:
             return 'invalid address'
 
@@ -517,7 +511,7 @@ class Taskhive(object):
 
     def outbox(self):
         json_messages = json.loads(self.api.getAllSentMessages())
-        outbox_outbox = json_messages['sentMessages']
+        json_outbox = json_messages['sentMessages']
         return json_outbox
 
     def read_sent_message(self, message_number):
@@ -579,13 +573,13 @@ class Taskhive(object):
 
 #    def create_terminate_json(self):
 
-#    def verify_request_json(self:
+#    def verify_request_json(self):
 
-#    def verify_offer_json(self:
+#    def verify_offer_json(self):
 
-#    def verify_terminate_json(self:
+#    def verify_terminate_json(self):
 
-#    def read_request_json(self:
+#    def read_request_json(self):
 
 #    def read_offer_json(self):
 
@@ -623,6 +617,7 @@ class Taskhive(object):
         broadcasts = status['numberOfBroadcastsProcessed']
         return connections, pubkeys, messages, broadcasts
 
+    # This isn't ready
     def preparations(self):
         self.run_bitmessage()
 
