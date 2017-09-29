@@ -96,12 +96,15 @@ class Taskhive(object):
                             process_path = each
             if process_path is not None:
                 keysfile = os.path.join(os.path.dirname(process_path), 'keys.dat')
-                if not os.path.isfile(keysfile):
+                if os.path.isfile(keysfile):
+                    CONFIG.read(keysfile)
+                else:
                     keysfile = os.path.join(self.lookup_appdata_folder(), 'keys.dat')
-                    if not os.path.isfile(keysfile):
+                    if os.path.isfile(keysfile):
+                        CONFIG.read(keysfile)
+                    else:
                         print("Can't find keysfile?")
                         break
-                CONFIG.read(keysfile)
                 try:
                     bitmessage_port = CONFIG.getint('bitmessagesettings', 'port')
                 except configparser.NoOptionError:
@@ -121,8 +124,6 @@ class Taskhive(object):
 
     def bitmessage_port_picker(self):
         check_bitmessage_ports = self.find_running_bitmessage_port()
-        print(check_bitmessage_ports)
-        print(type(check_bitmessage_ports))
         port_list = []
         apiport_list = []
         bitmessage_port = None
@@ -337,7 +338,8 @@ class Taskhive(object):
                                                stderr=subprocess.PIPE,
                                                stdin=subprocess.PIPE,
                                                bufsize=0,
-                                               cwd=TASKHIVE_DIR, shell=True)
+                                               cwd=TASKHIVE_DIR,
+                                               shell=True)
             else:
                 self.run_bm = subprocess.Popen(BITMESSAGE_PROGRAM,
                                                stdout=subprocess.PIPE,
@@ -345,6 +347,7 @@ class Taskhive(object):
                                                stdin=subprocess.PIPE,
                                                bufsize=0,
                                                cwd=TASKHIVE_DIR,
+                                               shell=True,
                                                preexec_fn=os.setpgrp,
                                                close_fds=True)
         except OSError:
