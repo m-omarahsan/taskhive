@@ -81,37 +81,43 @@ class Taskhive(object):
         self.bitmessage_dict = {}
         for process in psutil.process_iter():
             process_name = process.name()
-            if 'bitmessagemain' in process_name:
-                self.bitmessage_dict[process.pid] = {}
-                for each in process.cmdline():
-                    if 'bitmessagemain' in each:
-                        process_path = each
+            process_path = None
+            if sys.platform.startswith('win'):
+                if 'python' in process_name:
+                    for each in process.cmdline():
+                        if 'bitmessagemain' in each:
+                            self.bitmessage_dict[process.pid] = {}
+                            process_path = each
+            else:
+                if 'bitmessagemain' in process_name:
+                    for each in process.cmdline():
+                        if 'bitmessagemain' in each:
+                            self.bitmessage_dict[process.pid] = {}
+                            process_path = each
+            if process_path is not None:
+                keysfile = os.path.join(os.path.dirname(process_path), 'keys.dat')
+                if not os.path.isfile(keysfile):
+                    keysfile = os.path.join(self.lookup_appdata_folder(), 'keys.dat')
+                    if not os.path.isfile(keysfile):
+                        print("Can't find keysfile?")
                         break
-                        keysfile = os.path.join(os.path.dirname(process_path), 'keys.dat')
-                        if os.path.isfile(keysfile):
-                            CONFIG.read(keysfile)
-                        else:
-                            keysfile = os.path.join(self.lookup_appdata_folder(), 'keys.dat')
-                            if os.path.isfile(keysfile):
-                                CONFIG.read(keysfile)
-                        try:
-                            bitmessage_port = CONFIG.getint('bitmessagesettings', 'port')
-                        except configparser.NoOptionError:
-                            print('port is missing from', keysfile)
-                        except configparser.NoSectionError:
-                            print('bitmessagesettings section is missing from', keysfile)
-                        try:
-                            bitmessage_apiport = CONFIG.getint('bitmessagesettings', 'apiport')
-                        except configparser.NoOptionError:
-                            print('apiport is missing from', keysfile)
-                        except configparser.NoSectionError:
-                            print('bitmessagesettings section is missing from', keysfile)
-                        self.bitmessage_dict[process.pid]['file'] = each
-                        self.bitmessage_dict[process.pid]['port'] = bitmessage_port
-                        self.bitmessage_dict[process.pid]['apiport'] = bitmessage_apiport
-                        return self.bitmessage_dict
-                    else:
-                        pass
+                CONFIG.read(keysfile)
+                try:
+                    bitmessage_port = CONFIG.getint('bitmessagesettings', 'port')
+                except configparser.NoOptionError:
+                    print('port is missing from', keysfile)
+                except configparser.NoSectionError:
+                    print('bitmessagesettings section is missing from', keysfile)
+                try:
+                    bitmessage_apiport = CONFIG.getint('bitmessagesettings', 'apiport')
+                except configparser.NoOptionError:
+                    print('apiport is missing from', keysfile)
+                except configparser.NoSectionError:
+                    print('bitmessagesettings section is missing from', keysfile)
+                self.bitmessage_dict[process.pid]['file'] = each
+                self.bitmessage_dict[process.pid]['port'] = bitmessage_port
+                self.bitmessage_dict[process.pid]['apiport'] = bitmessage_apiport
+        return self.bitmessage_dict
 
     def bitmessage_port_picker(self):
         check_bitmessage_ports = self.find_running_bitmessage_port()
@@ -331,8 +337,7 @@ class Taskhive(object):
                                                stderr=subprocess.PIPE,
                                                stdin=subprocess.PIPE,
                                                bufsize=0,
-                                               cwd=TASKHIVE_DIR,
-                                               shell=True)
+                                               cwd=TASKHIVE_DIR)
             else:
                 self.run_bm = subprocess.Popen(BITMESSAGE_PROGRAM,
                                                stdout=subprocess.PIPE,
@@ -340,7 +345,6 @@ class Taskhive(object):
                                                stdin=subprocess.PIPE,
                                                bufsize=0,
                                                cwd=TASKHIVE_DIR,
-                                               shell=True,
                                                preexec_fn=os.setpgrp,
                                                close_fds=True)
         except OSError:
@@ -621,6 +625,7 @@ class Taskhive(object):
         broadcasts = status['numberOfBroadcastsProcessed']
         return connections, pubkeys, messages, broadcasts
 
+    # This isn't ready
     def preparations(self):
         self.run_bitmessage()
 
