@@ -690,15 +690,5 @@ class Taskhive(object):
         self.run_bitmessage()
 
 if __name__ == "__main__":
-    #print('The API should never be called directly.')
-    subprocess.Popen("py -2 test.py",
-                                               stdout=subprocess.PIPE,
-                                               stderr=subprocess.PIPE,
-                                               stdin=subprocess.PIPE,
-                                               bufsize=0,
-                                               cwd=TASKHIVE_DIR,
-                                               shell=True)
-    output = subprocess.check_output("test.py", shell=True)
-    print(output)
-
-    #sys.exit(0)
+    print('The API should never be called directly.')
+    sys.exit(0)
