@@ -36,7 +36,7 @@ def private_to_public(private_key):
 #IMPORTANT Hash result should be bigEndian?
 def address_from_public(public_key, VERSION_BYTE):
     hash_object = hashlib.new('ripemd160')
-    hash_object.update(hashlib.sha256(binascii.unhexlify(public_key.encode())).digest())
+    hash_object.update(hashlib.sha256(binascii.unhexlify(public_key)).digest())
     address = (VERSION_BYTE + hash_object.hexdigest())
     address = address + get_checksum(address)
     return address

@@ -25,6 +25,7 @@ import address_generator
 from address_generator import VERSION_BYTE
 from change import CRYPTO_COINS
 from change import CURRENCIES
+from lib import bitcoin
 
 APPNAME = 'Taskhive'
 CHARACTERS = string.digits + string.ascii_letters
@@ -289,8 +290,9 @@ class Taskhive(object):
     def generate_and_store_keys(self):
         private_key = address_generator.generate_key()
         public_key = address_generator.private_to_public(private_key)
-        address = address_generator.address_from_public(public_key)
+        address = address_generator.address_from_public(public_key, VERSION_BYTE)
         address_encoded = address_generator.base58_check_encoding(address)
+        print(private_key, public_key, address, address_encoded)
         self.keys_file_exists(KEYS_FILE)
         self.verify_settings(KEYS_FILE)
         if 'taskhivekeys' not in CONFIG.sections():
@@ -299,7 +301,7 @@ class Taskhive(object):
         CONFIG.set('taskhivekeys', 'public', public_key)
         CONFIG.set('taskhivekeys', 'address', address)
         CONFIG.set('taskhivekeys', 'address_encoded', address_encoded)
-        with open(KEYS_FILE, 'wb') as configfile:
+        with open(KEYS_FILE, 'w') as configfile:
             CONFIG.write(configfile)
 
     def retrieve_keys(self):
@@ -542,6 +544,61 @@ class Taskhive(object):
         else:
             return base64.b64decode(inbox_messages['inboxMessages'][message_number])
 
+
+
+
+    def create_request_json(self, task_INFO):
+        task_id = address_generator.generate_key()
+        preliminary_json = {}
+        final_signed_json = {}
+        task_json = json.loads(task_INFO)
+        private_key, public_key, address, address_encoded = self.retrieve_keys()
+        try:
+            preliminary_json['task_type'] = task_json['task_type']
+            preliminary_json['task_categories'] = task_json['task_categories']
+            preliminary_json['task_title'] = task_json['task_title']
+            preliminary_json['task_body'] = task_json['task_body']
+            preliminary_json['task_keywords'] = task_json['task_keywords']
+            preliminary_json['task_references'] = task_json['task_references']
+            preliminary_json['task_cost'] = task_json['task_cost']
+            preliminary_json['task_currency'] = task_json['task_currency']
+            preliminary_json['task_payment_methods'] = task_json['task_payment_methods']
+            preliminary_json['task_payment_rate_type'] = task_json['task_payment_rate_type']
+            preliminary_json['task_deadline'] = task_json['task_deadline']
+            preliminary_json['task_license'] = task_json['task_license']
+            preliminary_json['task_escrow_required'] = task_json['task_escrow_required']
+            preliminary_json['task_escrow_recommendation'] = task_json['task_escrow_recommendation']
+            preliminary_json['task_address'] = task_json['task_address']
+            preliminary_json['task_owner'] = public_key
+            preliminary_json['task_id'] = task_id
+            preliminary_json['task_entropy'] = 'CURRENTLY-NOT-IN-USE'
+            preliminary_json['task_expiration'] = task_json['task_expiration']
+        except KeyError:
+            return "Invalid data" 
+
+        json_string = json.dumps(preliminary_json)
+        wif_private_key = address_generator.private_to_wif(private_key, address_generator.WIF_VERSION_BYTE, address_generator.TYPE_PUB)
+        sign = bitcoin.sign_message_with_wif_privkey(wif_private_key, json_string)
+        encoded_sign = base64.b64encode(sign)
+        print(json_string)
+        final_signed_json['task_data'] = json_string
+        final_signed_json['task_data_signed'] = encoded_sign.decode('utf-8')
+        self.verify_request_json(json.dumps(final_signed_json), public_key)
+        return final_signed_json
+    
+    def verify_request_json(self, json_data, task_owner):
+        data = json.loads(json_data)
+        signature = bytes(data['task_data_signed'].encode('utf8'))
+        decoded_sign = base64.b64decode(signature)
+        temporary_json = json.loads(data['task_data'])
+        owner_public_key = temporary_json['task_owner']
+        add  = address_generator.address_from_public(bytes(owner_public_key.encode('utf8')), VERSION_BYTE) 
+        encoded_address = address_generator.base58_check_encoding(add)
+        json_string = json.dumps(data['task_data'])
+        result = bitcoin.verify_message(encoded_address, decoded_sign, bytes(data['task_data'].encode('utf8')))
+        return result
+
+
 # Task requests and offers have an identical JSON array format, differing only in task_type.
 #   [{
 #   "task_data":{
@@ -633,5 +690,15 @@ class Taskhive(object):
         self.run_bitmessage()
 
 if __name__ == "__main__":
-    print('The API should never be called directly.')
-    sys.exit(0)
+    #print('The API should never be called directly.')
+    subprocess.Popen("py -2 test.py",
+                                               stdout=subprocess.PIPE,
+                                               stderr=subprocess.PIPE,
+                                               stdin=subprocess.PIPE,
+                                               bufsize=0,
+                                               cwd=TASKHIVE_DIR,
+                                               shell=True)
+    output = subprocess.check_output("test.py", shell=True)
+    print(output)
+
+    #sys.exit(0)

@@ -196,6 +196,30 @@ class Taskhive(QApplication):
         QApplication.__init__(self, argv)
 
 
+
+test_json = '''{
+  "task_type":"offer",
+  "task_categories":["A1", "C4C1", "F122"],
+  "task_title":"Write a short story for my cat blog",
+  "task_body":"I have a cat blog that needs a story written for it. I will pay for a story about cats.",
+  "task_keywords":[ "cats", "blog", "writing"],
+  "task_references":[ "URL1", "URL2"],
+  "task_cost":"0.001",
+  "task_currency":"BTC",
+  "task_payment_rate_type":"task",
+  "task_payment_methods":[ "BTC", "DOGE"],
+  "task_deadline":1482710400,
+  "task_license":"CC BY 4.0",
+  "task_escrow_required":1,
+  "task_escrow_recommendation":"BITCOIN-PUBKEY",
+  "task_address":"TEMP-BM-ADDRESS",
+  "task_owner":"BITCOIN-PUBKEY",
+  "task_id":"YsBGsF3dc9But9GN5mXOTwEFIZWZ8=",
+  "task_entropy":"LATEST-BLOCKCHAIN-HASH",
+  "task_expiration":1482710400
+  }'''
+
+
 def main(argv, app):
 
     engine = QQmlEngine(app)
@@ -207,8 +231,10 @@ def main(argv, app):
         API.create_settings()
     BitMessageAPI = API.run_bitmessage()
     if API.run_bm.poll() is None:
-        print(API.find_running_bitmessage_port)
+        print(API.find_running_bitmessage_port())
         print('Bitmessage is running')
+        API.generate_and_store_keys()
+        API.create_request_json(test_json)
 
     component.loadUrl(QUrl('UI/main.qml'))
     if component.isReady():
