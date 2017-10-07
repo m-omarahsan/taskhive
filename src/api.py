@@ -22,6 +22,7 @@ import xml
 import psutil
 import xmlrpc.client
 import address_generator
+import database
 from address_generator import VERSION_BYTE
 from change import CRYPTO_COINS
 from change import CURRENCIES
@@ -164,11 +165,12 @@ class Taskhive(object):
         CONFIG.set('bitmessagesettings', 'port', str(bitmessage_port))
         CONFIG.set('bitmessagesettings', 'settingsversion', '10')
         CONFIG.set('bitmessagesettings', 'apiport', str(bitmessage_apiport))
-        CONFIG.set('bitmessagesettings', 'apiinterface', '127.0.0.1')
+        CONFIG.set('bitmessagesettings', 'apiinterface', 'localhost')
         CONFIG.set('bitmessagesettings', 'apiusername',
                    ''.join([SECURE_RANDOM.choice(CHARACTERS) for x in range(RANDOM_INT)]))
         CONFIG.set('bitmessagesettings', 'apipassword',
                    ''.join([SECURE_RANDOM.choice(CHARACTERS) for x in range(RANDOM_INT)]))
+        CONFIG.set('bitmessagesettings', 'apienabled', 'True')
         CONFIG.set('bitmessagesettings', 'daemon', 'True')
         CONFIG.set('bitmessagesettings', 'timeformat', '%%c')
         CONFIG.set('bitmessagesettings', 'blackwhitelist', 'black')
@@ -183,6 +185,7 @@ class Taskhive(object):
         CONFIG.set('bitmessagesettings', 'sockslisten', 'False')
         CONFIG.set('bitmessagesettings', 'socksusername', '')
         CONFIG.set('bitmessagesettings', 'sockspassword', '')
+        CONFIG.set('bitmessagesettings', 'smtpdeliver', '')
         # https://www.reddit.com/r/bitmessage/comments/5vt3la/sha1_and_bitmessage/deev8je/
         CONFIG.set('bitmessagesettings', 'digestalg', 'sha256')
         CONFIG.set('bitmessagesettings', 'keysencrypted', 'False')
@@ -210,6 +213,7 @@ class Taskhive(object):
         CONFIG.set('bitmessagesettings', 'sendoutgoingconnections', 'True')
         CONFIG.set('bitmessagesettings', 'onionhostname', '')
         CONFIG.set('bitmessagesettings', 'onionbindip', '')
+        CONFIG.set('bitmessagesettings', 'onionport', '')
         CONFIG.set('bitmessagesettings', 'hidetrayconnectionnotifications', 'False')
         CONFIG.set('bitmessagesettings', 'trayonclose', 'False')
         CONFIG.set('bitmessagesettings', 'willinglysendtomobile', 'False')
@@ -268,19 +272,19 @@ class Taskhive(object):
     def create_bitmessage_api(self):
         key_file_existence = self.keys_file_exists(KEYS_FILE)
         verifying_settings = self.verify_settings(KEYS_FILE)
+        print(verifying_settings)
         if key_file_existence is True:
             if verifying_settings is True:
                 api_username = CONFIG.get('bitmessagesettings', 'apiusername')
                 api_password = CONFIG.get('bitmessagesettings', 'apipassword')
                 api_interface = CONFIG.get('bitmessagesettings', 'apiinterface')
                 api_port = CONFIG.getint('bitmessagesettings', 'apiport')
-                # Build the api credentials
                 api_info = 'http://{0}:{1}@{2}:{3}/'.format(api_username,
                                                             api_password,
                                                             api_interface,
                                                             api_port)
                 self.api = xmlrpc.client.ServerProxy(api_info)
-
+                print(self.api_check())
             else:
                 return 'invalid keys_file settings'
                 
@@ -342,6 +346,7 @@ class Taskhive(object):
                                                bufsize=0,
                                                cwd=TASKHIVE_DIR,
                                                shell=True)
+                print("started running!")
             else:
                 self.run_bm = subprocess.Popen(BITMESSAGE_PROGRAM,
                                                stdout=subprocess.PIPE,
@@ -385,6 +390,7 @@ class Taskhive(object):
 
     def valid_address(self, address):
         address_information = json.loads(self.api.decodeAddress(address))
+        print(address_information)
         if address_information.get('status') == 'success':
             return True
         else:
@@ -422,14 +428,15 @@ class Taskhive(object):
         return total_subscriptions
 
     def create_chan(self, password):
-        password = base64.b64encode(password)
-        return(self.api.createChan(password))
+        password = base64.b64encode(password).decode('utf8')
+        return self.api.createChan(password)
  
     def join_chan(self, address, password):
         if self.valid_address(address):
-            initial_base64 = base64.b64encode(password)
-            password = base64.b64encode(initial_base64)
+            password = base64.b64encode(bytes(password.encode('utf8'))).decode('utf8')
+            print(address, password)
             joining_channel = self.api.joinChan(password, address)
+            print(joining_channel)
             if joining_channel == 'success':
                 return True
             else:
@@ -457,17 +464,17 @@ class Taskhive(object):
             return json_addresses
 
     # Generate address
-    def generate_address(self, label, deterministic, passphrase, number_of_addresses,
-                         address_version_number, stream_number, ripe):
+    def generate_address(self, deterministic=False, passphrase=None, number_of_addresses=1,
+                         address_version_number=0, stream_number=0, ripe=False, label=None):
         # Generates a new address with the user defined label, non-deterministic
-        if deterministic is False:
-            address_label = base64.b64encode(label)
+        if deterministic is False and label is not None:
+            address_label = base64.b64encode(bytes(label.encode('utf8'))).decode('utf8')
             generated_address = self.api.createRandomAddress(address_label)
             return generated_address
         # Generates a new deterministic address with the user inputs
         elif deterministic is True:
-            passphrase = base64.b64encode(passphrase)
-            generated_address = self.api.createDeterministicAddresses(passphrase, number_of_addresses, address_version_number, stream_number, ripe)
+            # passphrase = base64.b64encode(passphrase)
+            generated_address = self.api.createDeterministicAddresses(passphrase.decode('utf8'), number_of_addresses, address_version_number, stream_number, ripe)
             return generated_address
         else:
             return False
@@ -491,16 +498,21 @@ class Taskhive(object):
     def send_message(self, to_address, from_address, subject, message):
         # TODO - Was using .encode('UTF-8'), not needed?
         json_addresses = json.loads(self.api.listAddresses())
+        JSON_add = json_addresses['addresses']
+        addresses = []
+        for add in JSON_add:
+            addresses.append(add['address'])
         if not self.valid_address(to_address):
             return 'invalid to address'
         if not self.valid_address(from_address):
             return 'invalid from address'
         else:
-            if from_address not in json_addresses:
+            if from_address not in addresses:
                 return 'not our address'
-        subject = base64.b64encode(subject)
-        message = base64.b64encode(message)
+        subject = base64.b64encode(bytes(subject.encode('utf8'))).decode('utf8')
+        message = base64.b64encode(bytes(message.encode('utf8'))).decode('utf8')
         ack_data = self.api.sendMessage(to_address, from_address, subject, message)
+        print(ack_data)
         sending_message = self.api.getStatus(ack_data)
         return sending_message
 
@@ -545,6 +557,26 @@ class Taskhive(object):
             return base64.b64decode(inbox_messages['inboxMessages'][message_number])
 
 
+    def setup_channels(self):
+        channels = database.getChannels()
+        channel_addresses = []
+        self.api.check()
+        for channel in channels:
+            print(channel.encoded_name)       
+            address = self.generate_address(True,channel.encoded_name,1, 0,0,False)
+            print(address)
+
+    def test_channels(self):
+        #channel = self.create_chan(b'dGFza2hpdmVfb2ZmZXJzXzAx')
+        #print("ADDRESS: ", channel)
+        #response = self.join_chan('BM-2cVQgSEDtYSYUU2wh5SFmXA1fNd4uDWQLa', 'dGFza2hpdmVfb2ZmZXJzXzAx')
+        #if response:
+        #    print("We did it, reddit!")
+        randomAddress = self.generate_address(label='TestAddress')
+        print(randomAddress)
+        message = self.send_message('BM-2cVQgSEDtYSYUU2wh5SFmXA1fNd4uDWQLa', randomAddress, 'TESTING PLEASE, WORK', 'TEST #1')
+        print(message)
+        print(self.outbox())
 
 
     def create_request_json(self, task_INFO):
@@ -583,7 +615,12 @@ class Taskhive(object):
         print(json_string)
         final_signed_json['task_data'] = json_string
         final_signed_json['task_data_signed'] = encoded_sign.decode('utf-8')
-        self.verify_request_json(json.dumps(final_signed_json), public_key)
+        self.generate_address
+        bit_address = self.create_chan('testtaskhive')
+        if self.join_chan(bit_address, 'testtaskhive'):
+            print("Successfully joined")
+            self.send_message('')
+
         return final_signed_json
     
     def verify_request_json(self, json_data, task_owner):
