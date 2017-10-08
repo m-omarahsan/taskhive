@@ -231,13 +231,15 @@ def main(argv, app):
     print(BitMessage)
     if BitMessage in ['invalid keys_file settings', 'keyfile does not exist']:
         API.create_settings()
+        BitMessage = API.create_bitmessage_api()
+        BitMessageAPI = API.run_bitmessage()
     print(BitMessageAPI)
     if API.run_bm.poll() is None:
         print(API.find_running_bitmessage_port())
         print('Bitmessage is running')
         API.generate_and_store_keys()
         # API.create_request_json(test_json)
-    API.test_channels()
+    API.setup_channels()
     API.shutdown_bitmessage()
 
     component.loadUrl(QUrl('UI/main.qml'))

@@ -27,6 +27,8 @@ from address_generator import VERSION_BYTE
 from change import CRYPTO_COINS
 from change import CURRENCIES
 from lib import bitcoin
+from time import gmtime, strftime
+import time
 
 APPNAME = 'Taskhive'
 CHARACTERS = string.digits + string.ascii_letters
@@ -473,7 +475,7 @@ class Taskhive(object):
             return generated_address
         # Generates a new deterministic address with the user inputs
         elif deterministic is True:
-            # passphrase = base64.b64encode(passphrase)
+            passphrase = base64.b64encode(passphrase)
             generated_address = self.api.createDeterministicAddresses(passphrase.decode('utf8'), number_of_addresses, address_version_number, stream_number, ripe)
             return generated_address
         else:
@@ -511,7 +513,7 @@ class Taskhive(object):
                 return 'not our address'
         subject = base64.b64encode(bytes(subject.encode('utf8'))).decode('utf8')
         message = base64.b64encode(bytes(message.encode('utf8'))).decode('utf8')
-        ack_data = self.api.sendMessage(to_address, from_address, subject, message)
+        ack_data = self.api.sendMessage(to_address, from_address, subject, message, 360000)
         print(ack_data)
         sending_message = self.api.getStatus(ack_data)
         return sending_message
@@ -558,25 +560,57 @@ class Taskhive(object):
 
 
     def setup_channels(self):
-        channels = database.getChannels()
-        channel_addresses = []
-        self.api.check()
+        channels = [
+            {'hex':'01', 'name':'Video'},
+            {'hex':'02', 'name':'Audio'},
+            {'hex':'03', 'name':'Graphics and Art'},
+            {'hex':'04', 'name':'Reading and Writing'},
+            {'hex':'05', 'name':'Teaching and Consulting'},
+            {'hex':'06', 'name':'Engineering'},
+            {'hex':'07', 'name':'Administrative / Business / Legal'},
+            {'hex':'08', 'name':'Misc'}]
+        channel_INFO = []
+        channel_types = database.createChannelTypes()
         for channel in channels:
-            print(channel.encoded_name)       
-            address = self.generate_address(True,channel.encoded_name,1, 0,0,False)
-            print(address)
+            for chan_type in channel_types:
+                if chan_type.name == 'Offers':
+                    offers = 'taskhive_offers_{}'.format(channel['hex'])
+                    encoded_name = base64.b64encode(bytes(offers.encode('utf8')))
+                    
+                elif chan_type.name == 'Requests':
+                    requests = 'taskhive_requests_{}'.format(channel['hex'])
+                    encoded_name = base64.b64encode(bytes(requests.encode('utf8')))
+                address = self.generate_address(True,encoded_name,1, 0,0,False)
+                json_add = json.loads(address)
+                if json_add['addresses']:
+                    chan = {
+                        'hex':channel['hex'],
+                        'name':channel['name'],
+                        'encoded_name': encoded_name,
+                        'bit_address': json_add['addresses'][0],
+                        'type': chan_type.id
+                    }
+                    channel_INFO.append(chan)
+        database.storeChannels(channel_INFO)
 
     def test_channels(self):
         #channel = self.create_chan(b'dGFza2hpdmVfb2ZmZXJzXzAx')
         #print("ADDRESS: ", channel)
         #response = self.join_chan('BM-2cVQgSEDtYSYUU2wh5SFmXA1fNd4uDWQLa', 'dGFza2hpdmVfb2ZmZXJzXzAx')
         #if response:
-        #    print("We did it, reddit!")
-        randomAddress = self.generate_address(label='TestAddress')
+         #   print("We did it, reddit!")
+        randomAddress = self.generate_address(label='TEST1PM')
         print(randomAddress)
-        message = self.send_message('BM-2cVQgSEDtYSYUU2wh5SFmXA1fNd4uDWQLa', randomAddress, 'TESTING PLEASE, WORK', 'TEST #1')
-        print(message)
+        # BM-2cVQgSEDtYSYUU2wh5SFmXA1fNd4uDWQLa
+        message = self.send_message('BM-2cVQgSEDtYSYUU2wh5SFmXA1fNd4uDWQLa', randomAddress, 'TESTING MESSAGE FROM API 7/10/2017 4:33 PM GMT-4:00 TTL 100HOURS', 'TEST #1001')
+        #print(message)
         print(self.outbox())
+        while True:
+            time.sleep(20)
+            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+            print(self.inbox(True))
+            print(self.outbox())
+
 
 
     def create_request_json(self, task_INFO):

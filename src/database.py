@@ -35,37 +35,26 @@ def getChannels():
 	return ses.query(Channel).all()
 
 
-if __name__ == '__main__':
-	channels = [
-	{'hex':'01', 'name':'Video'},
-	{'hex':'02', 'name':'Audio'},
-	{'hex':'03', 'name':'Graphics and Art'},
-	{'hex':'04', 'name':'Reading and Writing'},
-	{'hex':'05', 'name':'Teaching and Consulting'},
-	{'hex':'06', 'name':'Engineering'},
-	{'hex':'07', 'name':'Administrative / Business / Legal'},
-	{'hex':'08', 'name':'Misc'}]
-	chn_type = ChannelType(name='Requests')
-	chn_type2 = ChannelType(name='Offers')
-	ses.add_all([chn_type, chn_type2])
+def createChannelTypes(types=['Offers', 'Requests']):
+	for t in types:
+		result = ses.query(ChannelType).filter_by(name=t).first()
+		if not result:
+			typ = ChannelType(name=t)
+			ses.add(typ)
 	ses.commit()
-	for channel in channels:
-		try:
-			offers = 'taskhive_offers_{}'.format(channel['hex'])
-			requests = 'taskhive_requests_{}'.format(channel['hex'])
-			encoded_offers_name = base64.b64encode(bytes(offers.encode('utf8'))) 
-			encoded_requests_name = base64.b64encode(bytes(requests.encode('utf8')))
-			new_req_chan = Channel(channel_HEX=channel['hex'], name=channel['name'], encoded_name=encoded_requests_name, channel_type=1)
-			new_offer_chan = Channel(channel_HEX=channel['hex'], name=channel['name'], encoded_name=encoded_offers_name, channel_type=2)
-			ses.add_all([new_offer_chan, new_req_chan])
-			ses.commit()
-		except IntegrityError:
-			ses.rollback()
-			continue
+	return ses.query(ChannelType).all()
 
-	all_channels = ses.query(Channel).all()
-	for chan in all_channels:
 
-		print(chan.name, ses.query(ChannelType).filter_by(id=chan.channel_type).first().name, chan.encoded_name)
+def storeChannels(channelInfo):
+	for channel in channelInfo:
+		chan = Channel(
+			channel_HEX=channel['hex'],
+			name=channel['name'],
+			encoded_name=channel['encoded_name'],
+			channel_type=channel['type'],
+			bit_address=channel['bit_address']
+		)
+		ses.add(chan)
+	ses.commit()
 
 
