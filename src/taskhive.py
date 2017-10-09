@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import os
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QObject, QUrl, pyqtSignal, QFileInfo, pyqtSlot, QFile, QMimeDatabase, QMimeType, QVariant
 from PyQt5.QtQml import qmlRegisterType, QQmlEngine, QQmlComponent
@@ -198,9 +199,9 @@ class Taskhive(QApplication):
 
 
 test_json = '''{
-  "task_type":"offer",
-  "task_categories":["A1", "C4C1", "F122"],
-  "task_title":"Write a short story for my cat blog",
+  "task_type":"requests",
+  "task_categories":["01"],
+  "task_title":"Write a short story for my video",
   "task_body":"I have a cat blog that needs a story written for it. I will pay for a story about cats.",
   "task_keywords":[ "cats", "blog", "writing"],
   "task_references":[ "URL1", "URL2"],
@@ -234,13 +235,11 @@ def main(argv, app):
         BitMessage = API.create_bitmessage_api()
         BitMessageAPI = API.run_bitmessage()
     print(BitMessageAPI)
+    API.setup_channels()
     if API.run_bm.poll() is None:
         print(API.find_running_bitmessage_port())
-        print('Bitmessage is running')
-        API.generate_and_store_keys()
-        # API.create_request_json(test_json)
-    API.setup_channels()
-    API.shutdown_bitmessage()
+    API.create_posting(test_json)
+    API.generate_and_store_keys()
 
     component.loadUrl(QUrl('UI/main.qml'))
     if component.isReady():

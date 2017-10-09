@@ -513,7 +513,7 @@ class Taskhive(object):
                 return 'not our address'
         subject = base64.b64encode(bytes(subject.encode('utf8'))).decode('utf8')
         message = base64.b64encode(bytes(message.encode('utf8'))).decode('utf8')
-        ack_data = self.api.sendMessage(to_address, from_address, subject, message, 360000)
+        ack_data = self.api.sendMessage(to_address, from_address, subject, message)
         print(ack_data)
         sending_message = self.api.getStatus(ack_data)
         return sending_message
@@ -531,7 +531,7 @@ class Taskhive(object):
         sending_broadcast = self.api.getStatus(ack_data)
         return sending_broadcast
 
-    def inbox(self, unread_only):
+    def inbox(self):
         json_messages = json.loads(self.api.getAllInboxMessages())
         inbox_messages = json_messages['inboxMessages']
         return inbox_messages
@@ -571,13 +571,14 @@ class Taskhive(object):
             {'hex':'08', 'name':'Misc'}]
         channel_INFO = []
         channel_types = database.createChannelTypes()
+        database.generateCategories()
         for channel in channels:
             for chan_type in channel_types:
-                if chan_type.name == 'Offers':
+                if chan_type.name.lower() == 'Offers'.lower():
                     offers = 'taskhive_offers_{}'.format(channel['hex'])
                     encoded_name = base64.b64encode(bytes(offers.encode('utf8')))
                     
-                elif chan_type.name == 'Requests':
+                elif chan_type.name.lower() == 'Requests'.lower():
                     requests = 'taskhive_requests_{}'.format(channel['hex'])
                     encoded_name = base64.b64encode(bytes(requests.encode('utf8')))
                 address = self.generate_address(True,encoded_name,1, 0,0,False)
@@ -593,30 +594,34 @@ class Taskhive(object):
                     channel_INFO.append(chan)
         database.storeChannels(channel_INFO)
 
-    def test_channels(self):
-        #channel = self.create_chan(b'dGFza2hpdmVfb2ZmZXJzXzAx')
-        #print("ADDRESS: ", channel)
-        #response = self.join_chan('BM-2cVQgSEDtYSYUU2wh5SFmXA1fNd4uDWQLa', 'dGFza2hpdmVfb2ZmZXJzXzAx')
-        #if response:
-         #   print("We did it, reddit!")
-        randomAddress = self.generate_address(label='TEST1PM')
-        print(randomAddress)
-        # BM-2cVQgSEDtYSYUU2wh5SFmXA1fNd4uDWQLa
-        message = self.send_message('BM-2cVQgSEDtYSYUU2wh5SFmXA1fNd4uDWQLa', randomAddress, 'TESTING MESSAGE FROM API 7/10/2017 4:33 PM GMT-4:00 TTL 100HOURS', 'TEST #1001')
-        #print(message)
-        print(self.outbox())
-        while True:
-            time.sleep(20)
-            print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
-            print(self.inbox(True))
-            print(self.outbox())
 
+    def getPostings(self):
+        messages = self.inbox()
+        for msg in messages:
+            print(msg)
+
+    def create_posting(self, task_INFO):
+        task_json = json.loads(task_INFO)
+        task_type = task_json['task_type']
+        categories = task_json['task_categories']
+        if task_type.lower() == 'offer':
+            pass
+        elif task_type.lower() == 'requests':
+            signed_json = self.create_request_json(task_INFO)
+        channels = database.getChannelByCategory(categories)
+
+        for chan in channels:
+            print("Sending messages...")
+            encoded_json = base64.b64encode(bytes(json.dumps(signed_json).encode('utf8'))).decode('utf8')
+            message_status = self.send_message(chan.bit_address, chan.bit_address, 'TEST {} GMT'.format(strftime("%Y-%m-%d %H:%M:%S", gmtime())), encoded_json)
+            print(message_status)
 
 
     def create_request_json(self, task_INFO):
         task_id = address_generator.generate_key()
         preliminary_json = {}
         final_signed_json = {}
+        task_BM_address = self.generate_address()
         task_json = json.loads(task_INFO)
         private_key, public_key, address, address_encoded = self.retrieve_keys()
         try:
@@ -634,7 +639,7 @@ class Taskhive(object):
             preliminary_json['task_license'] = task_json['task_license']
             preliminary_json['task_escrow_required'] = task_json['task_escrow_required']
             preliminary_json['task_escrow_recommendation'] = task_json['task_escrow_recommendation']
-            preliminary_json['task_address'] = task_json['task_address']
+            preliminary_json['task_address'] = task_BM_address
             preliminary_json['task_owner'] = public_key
             preliminary_json['task_id'] = task_id
             preliminary_json['task_entropy'] = 'CURRENTLY-NOT-IN-USE'
@@ -649,12 +654,6 @@ class Taskhive(object):
         print(json_string)
         final_signed_json['task_data'] = json_string
         final_signed_json['task_data_signed'] = encoded_sign.decode('utf-8')
-        self.generate_address
-        bit_address = self.create_chan('testtaskhive')
-        if self.join_chan(bit_address, 'testtaskhive'):
-            print("Successfully joined")
-            self.send_message('')
-
         return final_signed_json
     
     def verify_request_json(self, json_data, task_owner):
