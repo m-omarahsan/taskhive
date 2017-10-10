@@ -238,7 +238,8 @@ def main(argv, app):
     API.setup_channels()
     if API.run_bm.poll() is None:
         print(API.find_running_bitmessage_port())
-    API.create_posting(test_json)
+    # API.create_posting(test_json)
+    print(API.getPostings())
     API.generate_and_store_keys()
 
     component.loadUrl(QUrl('UI/main.qml'))

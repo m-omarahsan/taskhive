@@ -2,7 +2,6 @@ from sqlalchemy import Column, Integer, String, create_engine, ForeignKey
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.exc import IntegrityError
-import base64
 
 
 engine = create_engine('sqlite:///taskhive.db')

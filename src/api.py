@@ -53,7 +53,11 @@ EXPECTED_SETTINGS = frozenset(['apienabled','apiinterface','apipassword',
 'socksport','socksproxytype','socksusername','startintray','startonlogon',
 'stopresendingafterxdays','stopresendingafterxmonths','timeformat','trayonclose',
 'ttl','useidenticons','userlocale','willinglysendtomobile'])
-
+EXPECTED_JSON_DATA = frozenset(['task_type', 'task_categories', 'task_title',
+    'task_body', 'task_keywords', 'task_references', 'task_cost', 'task_currency',
+    'task_payment_rate_type','task_payment_methods', 'task_deadline', 'task_license',
+    'task_escrow_required', 'task_escrow_recommendation', 'task_address', 'task_owner',
+    'task_id', 'task_entropy', 'task_expiration'])
 # error codes
 #  0 - quitting voluntarily
 #  1 - quitting non-voluntarily, reason: []
@@ -512,7 +516,7 @@ class Taskhive(object):
             if from_address not in addresses:
                 return 'not our address'
         subject = base64.b64encode(bytes(subject.encode('utf8'))).decode('utf8')
-        message = base64.b64encode(bytes(message.encode('utf8'))).decode('utf8')
+        message = base64.b64encode(message).decode('utf8')
         ack_data = self.api.sendMessage(to_address, from_address, subject, message)
         print(ack_data)
         sending_message = self.api.getStatus(ack_data)
@@ -597,8 +601,28 @@ class Taskhive(object):
 
     def getPostings(self):
         messages = self.inbox()
+        verified_messages = []
         for msg in messages:
-            print(msg)
+            body = msg['message']
+            decoded_body = base64.b64decode(body)
+            try:
+                body_json = base64.b64decode(decoded_body)
+                print(body_json)
+            except:
+                continue
+            try:
+                body_json = json.loads(body_json.decode('utf-8'))
+            except TypeError:
+                raise APIError(1, 'JSON Data is incorrect')
+                continue
+            verified = self.verify_json(body_json)
+            if verified:
+                print(verified['task_id'], verified['task_body'])
+                verified_messages.append(verified)
+        return verified_messages
+
+
+
 
     def create_posting(self, task_INFO):
         task_json = json.loads(task_INFO)
@@ -612,9 +636,10 @@ class Taskhive(object):
 
         for chan in channels:
             print("Sending messages...")
-            encoded_json = base64.b64encode(bytes(json.dumps(signed_json).encode('utf8'))).decode('utf8')
+            encoded_json = base64.b64encode(bytes(json.dumps(signed_json).encode('utf8')))
             message_status = self.send_message(chan.bit_address, chan.bit_address, 'TEST {} GMT'.format(strftime("%Y-%m-%d %H:%M:%S", gmtime())), encoded_json)
             print(message_status)
+
 
 
     def create_request_json(self, task_INFO):
@@ -651,13 +676,12 @@ class Taskhive(object):
         wif_private_key = address_generator.private_to_wif(private_key, address_generator.WIF_VERSION_BYTE, address_generator.TYPE_PUB)
         sign = bitcoin.sign_message_with_wif_privkey(wif_private_key, json_string)
         encoded_sign = base64.b64encode(sign)
-        print(json_string)
         final_signed_json['task_data'] = json_string
         final_signed_json['task_data_signed'] = encoded_sign.decode('utf-8')
         return final_signed_json
     
-    def verify_request_json(self, json_data, task_owner):
-        data = json.loads(json_data)
+    def verify_json(self, json_data):
+        data = json_data
         signature = bytes(data['task_data_signed'].encode('utf8'))
         decoded_sign = base64.b64decode(signature)
         temporary_json = json.loads(data['task_data'])
@@ -666,7 +690,26 @@ class Taskhive(object):
         encoded_address = address_generator.base58_check_encoding(add)
         json_string = json.dumps(data['task_data'])
         result = bitcoin.verify_message(encoded_address, decoded_sign, bytes(data['task_data'].encode('utf8')))
+        if not result:
+            raise APIError(1, 'Signature is not valid')
+            return result
+        if temporary_json['task_type'].lower() == 'requests':
+            json_result = self.verify_request(temporary_json)
+        elif temporary_json['task_type'].lower() == 'offers':
+            pass
+        else:
+            return False
+        if not json_result:
+            return False
+        result = temporary_json
         return result
+        
+
+    def verify_request(self, task_data):
+        for data in EXPECTED_JSON_DATA:
+            if data not in task_data:
+                return False
+        return True
 
 
 # Task requests and offers have an identical JSON array format, differing only in task_type.
