@@ -278,7 +278,6 @@ class Taskhive(object):
     def create_bitmessage_api(self):
         key_file_existence = self.keys_file_exists(KEYS_FILE)
         verifying_settings = self.verify_settings(KEYS_FILE)
-        print(verifying_settings)
         if key_file_existence is True:
             if verifying_settings is True:
                 api_username = CONFIG.get('bitmessagesettings', 'apiusername')
@@ -302,7 +301,6 @@ class Taskhive(object):
         public_key = address_generator.private_to_public(private_key)
         address = address_generator.address_from_public(public_key, VERSION_BYTE)
         address_encoded = address_generator.base58_check_encoding(address)
-        print(private_key, public_key, address, address_encoded)
         self.keys_file_exists(KEYS_FILE)
         self.verify_settings(KEYS_FILE)
         if 'taskhivekeys' not in CONFIG.sections():
@@ -352,7 +350,6 @@ class Taskhive(object):
                                                bufsize=0,
                                                cwd=TASKHIVE_DIR,
                                                shell=True)
-                print("started running!")
             else:
                 self.run_bm = subprocess.Popen(BITMESSAGE_PROGRAM,
                                                stdout=subprocess.PIPE,
@@ -396,7 +393,6 @@ class Taskhive(object):
 
     def valid_address(self, address):
         address_information = json.loads(self.api.decodeAddress(address))
-        print(address_information)
         if address_information.get('status') == 'success':
             return True
         else:
@@ -440,9 +436,7 @@ class Taskhive(object):
     def join_chan(self, address, password):
         if self.valid_address(address):
             password = base64.b64encode(bytes(password.encode('utf8'))).decode('utf8')
-            print(address, password)
             joining_channel = self.api.joinChan(password, address)
-            print(joining_channel)
             if joining_channel == 'success':
                 return True
             else:
@@ -518,7 +512,6 @@ class Taskhive(object):
         subject = base64.b64encode(bytes(subject.encode('utf8'))).decode('utf8')
         message = base64.b64encode(message).decode('utf8')
         ack_data = self.api.sendMessage(to_address, from_address, subject, message)
-        print(ack_data)
         sending_message = self.api.getStatus(ack_data)
         return sending_message
 
@@ -607,7 +600,6 @@ class Taskhive(object):
             decoded_body = base64.b64decode(body)
             try:
                 body_json = base64.b64decode(decoded_body)
-                print(body_json)
             except:
                 continue
             try:
@@ -617,7 +609,6 @@ class Taskhive(object):
                 continue
             verified = self.verify_json(body_json)
             if verified:
-                print(verified['task_id'], verified['task_body'])
                 verified_messages.append(verified)
         return verified_messages
 

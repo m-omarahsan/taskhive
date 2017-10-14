@@ -4,10 +4,11 @@
 import sys
 import os
 from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import QObject, QUrl, pyqtSignal, QFileInfo, pyqtSlot, QFile, QMimeDatabase, QMimeType, QVariant
-from PyQt5.QtQml import qmlRegisterType, QQmlEngine, QQmlComponent
+from PyQt5.QtCore import QObject, QUrl, pyqtSignal, QFileInfo, pyqtSlot, pyqtSignal, QFile, QMimeDatabase, QMimeType, QVariant, QThread
+from PyQt5.QtQml import qmlRegisterType, QQmlEngine, QQmlComponent, QQmlApplicationEngine
 from PyQt5.QtQuick import QQuickView
 from api import Taskhive as TaskhiveAPI
+import time
 
 class FileInfo(QObject):
     def __init__(self):
@@ -37,6 +38,31 @@ class FileInfo(QObject):
             path = path.strip('file:///')
         file = QFileInfo(QFile(path))
         return file.fileName()
+
+
+
+class TaskThread(QThread):
+
+    newTask = pyqtSignal(QVariant, arguments=['result'])
+
+    def __init__(self):
+        QObject.__init__(self)
+        self.filters = []
+
+    @pyqtSlot()
+    def run(self):
+        while True:
+            result = API.getPostings()
+            print(result)
+            self.newTask.emit(result)
+            print("Signal emitted!")
+            time.sleep(5)
+
+    def handle_filters(self):
+        return None
+
+
+
 
 
 class TaskhiveAddress(QObject):
@@ -221,11 +247,12 @@ test_json = '''{
   }'''
 
 
-def main(argv, app):
 
-    engine = QQmlEngine(app)
-    engine.quit.connect(app.quit)
-    component = QQmlComponent(engine)
+
+
+
+if __name__ == "__main__":
+    app = Taskhive(sys.argv)
     API = TaskhiveAPI()
     BitMessageAPI = API.run_bitmessage()
     BitMessage = API.create_bitmessage_api()
@@ -239,25 +266,23 @@ def main(argv, app):
     if API.run_bm.poll() is None:
         print(API.find_running_bitmessage_port())
     # API.create_posting(test_json)
+    # API.generate_and_store_keys()
     print(API.getPostings())
-    API.generate_and_store_keys()
+    engine = QQmlApplicationEngine()
+    engine.quit.connect(app.quit)
+    
 
-    component.loadUrl(QUrl('UI/main.qml'))
-    if component.isReady():
-        mainWindow = component.create()
-        file = FileInfo()
-        categories = TaskhiveCategories()
-        context = engine.rootContext()
-        context.setContextProperty('FileInfo', file)
-        context.setContextProperty('TaskhiveCategories', categories)
+    file = FileInfo()
+    categories = TaskhiveCategories()
+    thread = TaskThread()
+    context = engine.rootContext()
+    context.setContextProperty('FileInfo', file)
+    context.setContextProperty('TaskhiveCategories', categories)
+    context.setContextProperty('TaskThread', thread)
 
-    else:
-        print(component.errorString())
-
+    engine.load(QUrl('UI/main.qml'))
+    if engine.objectCreated:
+        print("Should be working")
 
     sys.exit(app.exec_())
-
-if __name__ == "__main__":
-    app = Taskhive(sys.argv)
-    main(sys.argv, app)
 

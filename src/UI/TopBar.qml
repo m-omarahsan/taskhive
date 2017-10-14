@@ -93,7 +93,7 @@ Rectangle {
                 z: -1
                 Text {
                     id: username
-                    text: qsTr("vfxmaster")
+                    text: window.userData.guest ? "Guest": window.userData.name
                     font.pointSize: 22
                     color: "#fff"
                 }

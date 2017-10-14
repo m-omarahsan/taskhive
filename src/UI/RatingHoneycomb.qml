@@ -1,8 +1,88 @@
 import QtQuick 2.0
 import QtGraphicalEffects 1.0
 Item {
+    id: honeycombParent
+    property variant reputation: ListModel
     height: 60
     width: 406
+
+    function setReputation (reputation){
+        if (reputation.length > 0){
+            var negativeREP = reputation[0];
+            var positiveREP = reputation[1];
+            var currentX = centerImage.x;
+            var currentY = 16;
+            var counter = 0;
+            var db = false;
+            for(var i = 0;i<negativeREP; i++){
+                if(counter==0) {
+                    var newObject = Qt.createQmlObject('import QtQuick 2.0; import QtGraphicalEffects 1.0; Image { x:' + Math.ceil(currentX - 27) + '; y:'+ currentY +'
+            source: "images/graphic-rating-hex-02.svg" }', honeycombParent, 'testimage1');
+                    currentX = newObject.x
+                    counter++;
+                    print(counter + ': '+ newObject.x + ' - ' + newObject.y );
+                }
+                else {
+                    if(!db){
+                        currentY = 0;
+                        var newObject1 = Qt.createQmlObject('import QtQuick 2.0; import QtGraphicalEffects 1.0; Image { x:' + Math.ceil(currentX - 27) + '; y:'+ currentY +'
+                source: "images/graphic-rating-hex-02.svg" }', honeycombParent, 'testimage1');
+                        print(counter + ': '+ newObject1.x + ' - ' + newObject1.y );
+                        db = true;
+                        counter++;
+                    }
+                    else {
+                        currentY = 31;
+
+                        var newObject2 = Qt.createQmlObject('import QtQuick 2.0; import QtGraphicalEffects 1.0; Image { x:' + Math.ceil(currentX - 27) +'; y:'+ currentY +'
+                source: "images/graphic-rating-hex-02.svg" }', honeycombParent, 'testimage1');
+                        print(counter + ': '+ newObject2.x + ' - ' + newObject2.y );
+                        counter = 0;
+                        currentY = 16;
+                        currentX = newObject2.x
+                        db = false;
+                    }
+
+                }
+            }
+            counter = 0;
+            db = false;
+            currentY = 16;
+            currentX = centerImage.x;
+            for(var i = 0;i<positiveREP; i++){
+                if(counter==0) {
+                    var newObject = Qt.createQmlObject('import QtQuick 2.0; import QtGraphicalEffects 1.0; Image { x:' + Math.ceil(currentX + 27) + '; y:'+ currentY +'
+            source: "images/graphic-rating-hex-02.svg" }', honeycombParent, 'testimage1');
+                    currentX = newObject.x
+                    counter++;
+                    print(counter + ': '+ newObject.x + ' - ' + newObject.y );
+                }
+                else {
+                    if(!db){
+                        currentY = 0;
+                        var newObject1 = Qt.createQmlObject('import QtQuick 2.0; import QtGraphicalEffects 1.0; Image { x:' + Math.ceil(currentX + 27) + '; y:'+ currentY +'
+                source: "images/graphic-rating-hex-02.svg" }', honeycombParent, 'testimage1');
+                        print(counter + ': '+ newObject1.x + ' - ' + newObject1.y );
+                        db = true;
+                        counter++;
+                    }
+                    else {
+                        currentY = 31;
+
+                        var newObject2 = Qt.createQmlObject('import QtQuick 2.0; import QtGraphicalEffects 1.0; Image { x:' + Math.ceil(currentX + 27) +'; y:'+ currentY +'
+                source: "images/graphic-rating-hex-02.svg" }', honeycombParent, 'testimage1');
+                        print(counter + ': '+ newObject2.x + ' - ' + newObject2.y );
+                        counter = 0;
+                        currentY = 16;
+                        currentX = newObject2.x
+                        db = false;
+                    }
+
+                }
+            }
+        }
+    }
+
     Image {
         id: image
         x: 0
@@ -11,216 +91,58 @@ Item {
         source: "images/graphic-rating.svg"
     }
     Image {
-        id: image1
-        x: 0
-        y: 15
-        fillMode: Image.PreserveAspectFit
+        id: fakeImage
+        x: parent.width / 2
+        y: parent.height / 2
         source: "images/graphic-rating-hex-02.svg"
-        visible: false
+       visible: false
     }
     Image {
-        id: image2
-        x: 27
-        y: 30
-        fillMode: Image.PreserveAspectFit
+        id: centerImage
+        x: (parent.width / 2) - fakeImage.paintedWidth / 2
+        y: (parent.height / 2) + 1
         source: "images/graphic-rating-hex-02.svg"
-        visible: false
-    }
 
+    }
+    ColorOverlay{
+        source: centerImage
+        anchors.fill: centerImage
+        color: "#fff"
+    }
     Image {
-        id: image3
-        x: 26
+        id: centerImage2
+        x: (parent.width / 2) - fakeImage.paintedWidth / 2
         y: 0
-        fillMode: Image.PreserveAspectFit
         source: "images/graphic-rating-hex-02.svg"
-        visible: false
+
+    }
+    ColorOverlay{
+        source: centerImage2
+        anchors.fill: centerImage2
+        color: "#fff"
     }
 
     Image {
-        id: image4
-        x: 53
-        y: 15
-        fillMode: Image.PreserveAspectFit
-        source: "images/graphic-rating-hex-02.svg"
-        visible: false
-    }
-
-    Image {
-        id: image5
-        x: 80
-        y: 30
-        fillMode: Image.PreserveAspectFit
-        source: "images/graphic-rating-hex-02.svg"
-        visible: false
-    }
-
-    Image {
-        id: image6
-        x: 80
-        y: 0
-        fillMode: Image.PreserveAspectFit
-        source: "images/graphic-rating-hex-02.svg"
-        visible: false
-    }
-
-    Image {
-        id: image7
-        x: 107
-        y: 15
-        fillMode: Image.PreserveAspectFit
-        source: "images/graphic-rating-hex-02.svg"
-        visible: false
-    }
-
-    Image {
-        id: image8
+        id: centerImage3
         x: 133
         y: 0
-        fillMode: Image.PreserveAspectFit
         source: "images/graphic-rating-hex-02.svg"
-        visible: false
     }
 
     Image {
-        id: image9
-        x: 133.5
+        id: centerImage4
+        x: 133
         y: 31
-        fillMode: Image.PreserveAspectFit
         source: "images/graphic-rating-hex-02.svg"
-        visible: false
-    }
-    ColorOverlay {
-        source: image9
-        anchors.fill: image9
-        color: "red"
-    }
-    Image {
-        id: image10
-        x: 160
-        y: 15.75
-        fillMode: Image.PreserveAspectFit
-        source: "images/graphic-rating-hex-02.svg"
-        visible: false
-    }
-    ColorOverlay {
-        source: image10
-        anchors.fill: image10
-        color: "red"
-    }
-    ColorOverlay {
-        source: image11
-        anchors.fill: image11
-        color: "#fff"
-    }
-    Image {
-        id: image11
-        x: 187
-        y: 0
-        fillMode: Image.PreserveAspectFit
-        source: "images/graphic-rating-hex-02.svg"
-        visible: false
     }
 
     Image {
-        id: image12
-        x: 187
-        y: 30
-        fillMode: Image.PreserveAspectFit
-        source: "images/graphic-rating-hex-02.svg"
-        visible: false
-    }
-    ColorOverlay {
-        source: image12
-        anchors.fill: image12
-        color: "#fff"
-    }
-    Image {
-        id: image13
-        x: 213
+        id: centerImage5
+        x: 106
         y: 15
-        fillMode: Image.PreserveAspectFit
         source: "images/graphic-rating-hex-02.svg"
-        visible: false
     }
-
-    Image {
-        id: image14
-        x: 240
-        y: 0
-        fillMode: Image.PreserveAspectFit
-        source: "images/graphic-rating-hex-02.svg"
-        visible: false
-    }
-
-    Image {
-        id: image15
-        x: 240
-        y: 30
-        fillMode: Image.PreserveAspectFit
-        source: "images/graphic-rating-hex-02.svg"
-        visible: false
-    }
-
-    Image {
-        id: image16
-        x: 266
-        y: 15
-        fillMode: Image.PreserveAspectFit
-        source: "images/graphic-rating-hex-02.svg"
-        visible: false
-    }
-
-    Image {
-        id: image17
-        x: 293
-        y: 0
-        fillMode: Image.PreserveAspectFit
-        source: "images/graphic-rating-hex-02.svg"
-        visible: false
-    }
-
-    Image {
-        id: image18
-        x: 293
-        y: 30
-        fillMode: Image.PreserveAspectFit
-        source: "images/graphic-rating-hex-02.svg"
-        visible: false
-    }
-
-    Image {
-        id: image19
-        x: 320
-        y: 15
-        fillMode: Image.PreserveAspectFit
-        source: "images/graphic-rating-hex-02.svg"
-        visible: false
-    }
-
-    Image {
-        id: image20
-        x: 346
-        y: 0
-        fillMode: Image.PreserveAspectFit
-        source: "images/graphic-rating-hex-02.svg"
-        visible: false
-    }
-
-    Image {
-        id: image21
-        x: 373
-        y: 15
-        fillMode: Image.PreserveAspectFit
-        source: "images/graphic-rating-hex-02.svg"
-        visible: false
-    }
-
-    Image {
-        id: image22
-        x: 346
-        y: 30
-        fillMode: Image.PreserveAspectFit
-        source: "images/graphic-rating-hex-02.svg"
-        visible: false
+    Component.onCompleted: {
+        setReputation([5,2])
     }
 }
