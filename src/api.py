@@ -607,7 +607,9 @@ class Taskhive(object):
             except TypeError:
                 raise APIError(1, 'JSON Data is incorrect')
                 continue
+
             verified = self.verify_json(body_json)
+            print(verified)
             if verified:
                 verified_messages.append(verified)
         return verified_messages
@@ -616,19 +618,20 @@ class Taskhive(object):
 
 
     def create_posting(self, task_INFO):
-        task_json = json.loads(task_INFO)
+        task_json = task_INFO
+        task_INFO = json.dumps(task_INFO)
         task_type = task_json['task_type']
         categories = task_json['task_categories']
         if task_type.lower() == 'offer':
             pass
-        elif task_type.lower() == 'requests':
-            signed_json = self.create_request_json(task_INFO)
+        elif task_type.lower() == 'request':
+            prelim, signed_json = self.create_request_json(task_INFO)
         channels = database.getChannelByCategory(categories)
 
         for chan in channels:
             print("Sending messages...")
             encoded_json = base64.b64encode(bytes(json.dumps(signed_json).encode('utf8')))
-            message_status = self.send_message(chan.bit_address, chan.bit_address, 'TEST {} GMT'.format(strftime("%Y-%m-%d %H:%M:%S", gmtime())), encoded_json)
+            message_status = self.send_message(chan.bit_address, prelim['task_address'], 'TEST {} GMT'.format(strftime("%Y-%m-%d %H:%M:%S", gmtime())), encoded_json)
             print(message_status)
 
 
@@ -637,7 +640,7 @@ class Taskhive(object):
         task_id = address_generator.generate_key()
         preliminary_json = {}
         final_signed_json = {}
-        task_BM_address = self.generate_address()
+        task_BM_address = self.generate_address(label=task_id)
         task_json = json.loads(task_INFO)
         private_key, public_key, address, address_encoded = self.retrieve_keys()
         try:
@@ -659,8 +662,9 @@ class Taskhive(object):
             preliminary_json['task_owner'] = public_key
             preliminary_json['task_id'] = task_id
             preliminary_json['task_entropy'] = 'CURRENTLY-NOT-IN-USE'
-            preliminary_json['task_expiration'] = task_json['task_expiration']
-        except KeyError:
+            preliminary_json['task_expiration'] = task_json['task_deadline']
+        except KeyError as e:
+            print(e)
             return "Invalid data" 
 
         json_string = json.dumps(preliminary_json)
@@ -669,7 +673,7 @@ class Taskhive(object):
         encoded_sign = base64.b64encode(sign)
         final_signed_json['task_data'] = json_string
         final_signed_json['task_data_signed'] = encoded_sign.decode('utf-8')
-        return final_signed_json
+        return preliminary_json, final_signed_json
     
     def verify_json(self, json_data):
         data = json_data
@@ -682,11 +686,12 @@ class Taskhive(object):
         json_string = json.dumps(data['task_data'])
         result = bitcoin.verify_message(encoded_address, decoded_sign, bytes(data['task_data'].encode('utf8')))
         if not result:
+            print( "Sign not valid")
             raise APIError(1, 'Signature is not valid')
             return result
-        if temporary_json['task_type'].lower() == 'requests':
+        if temporary_json['task_type'].lower() == 'request':
             json_result = self.verify_request(temporary_json)
-        elif temporary_json['task_type'].lower() == 'offers':
+        elif temporary_json['task_type'].lower() == 'offer':
             pass
         else:
             return False

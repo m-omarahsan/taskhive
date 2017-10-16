@@ -4,12 +4,12 @@
 import sys
 import os
 from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import QObject, QUrl, pyqtSignal, QFileInfo, pyqtSlot, pyqtSignal, QFile, QMimeDatabase, QMimeType, QVariant, QThread
+from PyQt5.QtCore import Qt, QObject, QModelIndex, QUrl, pyqtSignal, QFileInfo, pyqtSlot, pyqtSignal, QFile, QMimeDatabase, QMimeType, QVariant, QThread
 from PyQt5.QtQml import qmlRegisterType, QQmlEngine, QQmlComponent, QQmlApplicationEngine
 from PyQt5.QtQuick import QQuickView
 from api import Taskhive as TaskhiveAPI
 import time
-
+import datetime
 class FileInfo(QObject):
     def __init__(self):
             QObject.__init__(self)
@@ -48,20 +48,39 @@ class TaskThread(QThread):
     def __init__(self):
         QObject.__init__(self)
         self.filters = []
+        self._paused = False
+
+    @pyqtSlot()
+    def pause(self):
+        self._paused = True
+
+    @pyqtSlot()
+    def resume(self):
+        self._paused = False
 
     @pyqtSlot()
     def run(self):
-        while True:
+        while not self._paused:
             result = API.getPostings()
-            print(result)
             self.newTask.emit(result)
-            print("Signal emitted!")
+            print("Keeps running")
             time.sleep(5)
 
     def handle_filters(self):
         return None
 
 
+class Task(QObject):
+
+    @pyqtSlot(QVariant, result=QVariant)
+    def createTask(self, JSON_DATA):
+        task_JSON = JSON_DATA.toVariant()
+        deadline = task_JSON['task_deadline'] + ' 23:59:59'
+        formatted_d = datetime.datetime.strptime(deadline,'%d/%m/%Y %H:%M:%S')
+        epoch_deadline = (formatted_d - datetime.datetime(1970, 1, 1)).total_seconds()
+        task_JSON['task_deadline'] = epoch_deadline
+        API.create_posting(task_JSON)
+        return {"status":"ayylmao"}
 
 
 
@@ -275,10 +294,12 @@ if __name__ == "__main__":
     file = FileInfo()
     categories = TaskhiveCategories()
     thread = TaskThread()
+    task = Task()
     context = engine.rootContext()
     context.setContextProperty('FileInfo', file)
     context.setContextProperty('TaskhiveCategories', categories)
     context.setContextProperty('TaskThread', thread)
+    context.setContextProperty('Task', task)
 
     engine.load(QUrl('UI/main.qml'))
     if engine.objectCreated:

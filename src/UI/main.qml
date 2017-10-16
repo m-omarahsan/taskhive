@@ -59,6 +59,7 @@ ApplicationWindow {
                             source: "images/icon-add.svg"
                             MouseArea {
                                 anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
                                 onClicked: {
                                     var createTaskComponent = Qt.createComponent("CreateTask.qml")
                                     var create_task = createTaskComponent.createObject(window)

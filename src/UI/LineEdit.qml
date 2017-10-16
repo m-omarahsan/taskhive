@@ -4,7 +4,8 @@ Item {
     id: lineEditItem
     property int fontSize: 18
     property bool editable: input1.editable
-    property string text: input1.text
+    property alias text: input1.text
+    signal accepted()
     Rectangle {
             anchors.fill: parent
             anchors.bottomMargin: 1
@@ -20,8 +21,9 @@ Item {
             id: input1
             anchors.fill: parent
             anchors.leftMargin: 4
-            anchors.rightMargin: 30
+            anchors.rightMargin: 3
             font.pixelSize: parent.fontSize
+            onAccepted: lineEditItem.accepted()
         }
 
 }
