@@ -29,7 +29,7 @@ from change import CURRENCIES
 from lib import bitcoin
 from time import gmtime, strftime
 import time
-
+from json.decoder import JSONDecodeError
 APPNAME = 'Taskhive'
 CHARACTERS = string.digits + string.ascii_letters
 CONFIG = configparser.ConfigParser()
@@ -611,7 +611,7 @@ class Taskhive(object):
             try:
                 print(body_json)
                 body_json = json.loads(body_json.decode('utf-8'))
-            except (TypeError, UnicodeDecodeError):
+            except (TypeError, UnicodeDecodeError, ValueError, JSONDecodeError):
                 # raise APIError(1, 'JSON Data is incorrect')
                 continue
 
