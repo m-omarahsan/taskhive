@@ -6,7 +6,7 @@ Rectangle{
     property alias text: item2.text
     LineEdit {
         id: item2
-        editable: false
+        readOnly: true
         height: parent.height
         width: parent.width
     }

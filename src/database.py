@@ -40,6 +40,16 @@ class Channel(Base):
 Base.metadata.create_all(engine)
 
 
+def getCategories():
+	cats = []
+	for cat in ses.query(Category).all():
+		cats.append({
+			"hex": cat.id,
+			"name": cat.name
+			})
+	return cats
+
+
 def generateCategories():
 	with open('categories.txt', 'r') as f:
 		for line in f.readlines():

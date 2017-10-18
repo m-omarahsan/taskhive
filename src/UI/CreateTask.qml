@@ -3,22 +3,23 @@ import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
 import QtQuick.Window 2.2
 import QtQuick.Controls.Styles 1.4
-
+import QtQuick.Dialogs 1.2
 Window {
     id: createWindow
     height: 800
-    width: 1200
+    width: 800
     color: "#0c0c0c"
-    property variant selectedMethods: ListModel {}
+    property ListModel selectedMethods: ListModel {}
     property ListModel keywordList: ListModel {}
+    property variant categories: []
 
 
-    function createPosting(){
+    function sendDataToThread(){
+
         var keywords = []
-        for(var i=0; i<createWindow.keywordList.rowCount(); i++){
-            keywords.push(createWindow.keywordList.get(i).word);
+        for(var i=0; i<createWindow.keywordList.count; i++){
+            keywords.push(keywordList.get(i).word);
         }
-
         var JSON_DATA = {
             "task_keywords": keywords,
             "task_references": ["URL1", "URL2"],
@@ -30,17 +31,22 @@ Window {
             "task_deadline": task_deadline.text,
             "task_escrow_required": 1,
             "task_payment_rate_type": "task",
-            "task_categories": ['01','02'],
+            "task_categories": ['01'],
             'task_payment_methods': ['BTC', 'DGE'],
             'task_escrow_recommendation': 'BITCOIN-PUBKEY',
             'task_license': 'CC BY 4.0',
             'task_entropy': 'CURRENTLY-NOT-IN-USE'
         }
-        TaskThread.pause()
-        Task.createTask(JSON_DATA)
-        TaskThread.resume()
+        Task.run(JSON_DATA)
+
     }
 
+    Connections {
+        target: Task
+        onTaskStatus: {
+            print(status)
+        }
+    }
 
     Row {
         id: windowTitleCreate
@@ -55,6 +61,7 @@ Window {
         }
         ComboBox {
             id: task_type
+            height: 30
             model: ["Request", "Offer"]
         }
     }
@@ -69,22 +76,23 @@ Window {
         spacing: 10
         Text {
             text: "Task Title"
-            font.pixelSize: 22
+            font.pixelSize: 18
             color: "#fff"
         }
         LineEdit {
             id: task_title
-            height: 40
+            height: 30
+            fontSize: 16
             width: parent.width
         }
         Text {
             text: "Task Description"
-            font.pixelSize: 22
+            font.pixelSize: 18
             color: "#fff"
         }
         TextBox {
             id: task_body
-            height: 200
+            height: 150
             width: parent.width
         }
         Row{
@@ -92,138 +100,178 @@ Window {
             width: parent.width
             spacing: 10
             Text {
-                text: "Payment Methods:"
-                anchors.verticalCenter: parent.verticalCenter
-                color: "#fff"
-                font.pixelSize: 22
-                verticalAlignment: Text.AlignVCenter
-            }
-            Combo {
-                id: paymentMethodCombo
-                model: ["BTC", "DOGE"]
-                width: 100
-                height: 40
-                onAccepted: {
-                    if(createWindow.selectedMethods){
-                        if(createWindow.selectedMethods.indexOf({"method":paymentMethodCombo.currentText}) >= 0){
-                            createWindow.selectedMethods.append({"method":paymentMethodCombo.currentText});
-                        }
-                    }
-                    else {
-                        createWindow.selectedMethods.append({"method":paymentMethodCombo.currentText});
-                    }
-                }
-            }
-            Column {
-                spacing: 5
-                Text {
-                    text: "Selected Methods"
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    color: "#fff"
-                    font.pixelSize: 18
-                }
-                ListView {
-                    model: createWindow.selectedMethods
-                    delegate: Text {
-                        text: modelData.method
-                        color: "#fff"
-                        font.pixelSize: 16
-                    }
-                }
-            }
-            Text {
                 text: "Task Currency:"
                 anchors.verticalCenter: parent.verticalCenter
                 color: "#fff"
-                font.pixelSize: 22
+                font.pixelSize: 18
                 verticalAlignment: Text.AlignVCenter
             }
             Combo {
                 id: task_currency
                 model: ["BTC", "USD"]
                 width: 100
-                height: 40
+                height: 25
+                anchors.verticalCenter: parent.verticalCenter
             }
 
             Text {
                 text: "Task Cost:"
                 anchors.verticalCenter: parent.verticalCenter
                 color: "#fff"
-                font.pixelSize: 22
+                font.pixelSize: 18
                 verticalAlignment: Text.AlignVCenter
             }
             LineEdit {
                 id: task_cost
-                height: 40
+                height: 30
                 width: 100
+                validator: DoubleValidator {}
+            }
+            Text {
+                text: "Category"
+                anchors.verticalCenter: parent.verticalCenter
+                color: "#fff"
+                font.pixelSize: 18
+                verticalAlignment: Text.AlignVCenter
+            }
+            ComboBox {
+                id: task_category
+                model: categories
+                width: 100
+                height: 25
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+        }
+        Text {
+            text: "Payment Methods"
+            color: "#fff"
+            font.pixelSize: 18
+            verticalAlignment: Text.AlignVCenter
+        }
+        GridView {
+            model: createWindow.selectedMethods
+            anchors.right: parent.right
+            anchors.left: parent.left
+            height: 100
+            cellHeight: 35
+            cellWidth: 75
+            delegate: Rectangle{
+                height: 30
+                width: 70
+                color: "transparent"
+                    Text {
+                    text: method
+                    color: "#fff"
+                    font.pixelSize: 16
+                }
+            }
+            footer: Row {
+                height: 30
+                width: 150
+                spacing: 10
+                ComboBox{
+                    id: paymentMethods
+                    height: 30
+                    width: 100
+                    model: ["BTC", "DOGE"]
+                    visible: false
+                }
+
+                Button {
+                    width: 40
+                    height: parent.height
+                    text: "+"
+                    onClicked: {
+                        if(paymentMethods.visible){
+                            createWindow.selectedMethods.append({"method":paymentMethods.currentText})
+                        }
+                        else {
+                            paymentMethods.visible = true
+                        }
+                    }
+                }
+
             }
         }
         Text {
             text: "Deadline"
             color: "#fff"
-            font.pixelSize: 22
+            font.pixelSize: 18
         }
         Datepicker {
             id: task_deadline
-            height: 40
+            height: 30
             width: 150
             z: 999
         }
         Row{
+            id: row1
             spacing: 5
             Text {
                 text: "Insert Keywords"
                 color: "#fff"
-                font.pixelSize: 22
+                font.pixelSize: 18
                 anchors.verticalCenter: parent.verticalCenter
             }
             LineEdit {
                 id: keyword
-                height: 40
+                height: 30
+                anchors.verticalCenter: parent.verticalCenter
                 width: 150
                 onAccepted: {
                     createWindow.keywordList.append({"word":keyword.text})
-                    print("Appended!")
+                    keyword.text = ''
                 }
             }
         }
-        GridView {
+        Flow {
             id: keywords
-            model: createWindow.keywordList
-            height: 100
+            height: 80
+            layoutDirection: Qt.LeftToRight
+            flow: GridLayout.LeftToRight
             anchors.left: parent.left
             anchors.right: parent.right
-            cellHeight: 45
-            cellWidth: 105
-            delegate: keywordItem
+            spacing: 10
+            Repeater {
+                model: createWindow.keywordList
+                delegate: keywordItem
+            }
         }
         Component {
             id: keywordItem
-            Rectangle {
-                radius: 2
-                height: 40
-                width: 100
+            Item {
+                width: childrenRect.width
+                height: 30
                 Text {
-                    text: "X"
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.rightMargin: 2
-                    anchors.topMargin: 2
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            createWindow.keywordList.remove(keywords.currentIndex-1)
+                    id: fakeText
+                    text: modelData
+                    font.pixelSize: 18
+                    visible: false
+                }
+                Rectangle {
+                    width: fakeText.width + 30
+                    height: 30
+                    Text {
+                        text: "X"
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.rightMargin: 2
+                        anchors.topMargin: 2
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                createWindow.keywordList.remove(index)
+                            }
                         }
                     }
-                }
-                Text {
-                    text: modelData
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    font.pixelSize: 18
-                }
-
+                    Text {
+                        text: modelData
+                        font.pixelSize: 18
+                        anchors.centerIn: parent
+                    }
+               }
             }
         }
 
@@ -238,7 +286,12 @@ Window {
             id: submitB
             text: "Submit"
             onClicked:  {
-                createWindow.createPosting()
+                if(task_cost.acceptableInput && (task_title.length > 0) && (task_body.length > 0)){
+                    createWindow.sendDataToThread()
+                }
+                else {
+                    messageDialog.open()
+                }
                 createWindow.close()
 
             }
@@ -264,5 +317,21 @@ Window {
                 }
             }
         }
+    }
+    MessageDialog {
+        id: messageDialog
+        title:  qsTr("Invalid Input")
+        text: qsTr("Invalid Task Cost")
+        onAccepted: {
+                task_cost.focus = true;
+        }
+    }
+    Component.onCompleted: {
+        var cats = TaskhiveCategories.getCategories();
+        var categoriesNames = [];
+        for(var i = 0; i<cats.length;i++){
+            categoriesNames.push(cats[i].name);
+        }
+        createWindow.categories = categoriesNames;
     }
 }

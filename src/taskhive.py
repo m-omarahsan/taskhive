@@ -8,8 +8,11 @@ from PyQt5.QtCore import Qt, QObject, QModelIndex, QUrl, pyqtSignal, QFileInfo, 
 from PyQt5.QtQml import qmlRegisterType, QQmlEngine, QQmlComponent, QQmlApplicationEngine
 from PyQt5.QtQuick import QQuickView
 from api import Taskhive as TaskhiveAPI
+import database as dtb
+import atexit
 import time
 import datetime
+
 class FileInfo(QObject):
     def __init__(self):
             QObject.__init__(self)
@@ -49,6 +52,7 @@ class TaskThread(QThread):
         QObject.__init__(self)
         self.filters = []
         self._paused = False
+        self._localAPI = TaskhiveAPI()
 
     @pyqtSlot()
     def pause(self):
@@ -60,27 +64,37 @@ class TaskThread(QThread):
 
     @pyqtSlot()
     def run(self):
+        self._localAPI.create_bitmessage_api()
         while not self._paused:
-            result = API.getPostings()
+            result = self._localAPI.getPostings()
             self.newTask.emit(result)
-            print("Keeps running")
             time.sleep(5)
 
     def handle_filters(self):
         return None
 
 
-class Task(QObject):
+
+class TaskSendMessage(QThread):
+
+    taskStatus = pyqtSignal(QVariant, arguments=['status'])
+
+    def __init__(self):
+        QObject.__init__(self)
+        self._localAPI = TaskhiveAPI()
+
 
     @pyqtSlot(QVariant, result=QVariant)
-    def createTask(self, JSON_DATA):
+    def run(self, JSON_DATA):
+        self._localAPI.create_bitmessage_api()
         task_JSON = JSON_DATA.toVariant()
         deadline = task_JSON['task_deadline'] + ' 23:59:59'
         formatted_d = datetime.datetime.strptime(deadline,'%d/%m/%Y %H:%M:%S')
         epoch_deadline = (formatted_d - datetime.datetime(1970, 1, 1)).total_seconds()
         task_JSON['task_deadline'] = epoch_deadline
-        API.create_posting(task_JSON)
-        return {"status":"ayylmao"}
+        self._localAPI.create_posting(task_JSON)
+        self.taskStatus.emit({'status':'sent'})
+        # return {'status':'sent'}
 
 
 
@@ -99,147 +113,14 @@ class TaskhiveCategories(QObject):
 
     @pyqtSlot(result=QVariant)
     def getCategories(self):
-        categories =  [
-                {
-                    "name": "Audio / Video", 
-                    "sub_categories": [
-                        {
-                            "name": "Video",
-                            "sub_categories": [
-                                {
-                                    "name":"Recording",
-                                    "sub_categories": [
-                                        {
-                                            "name": "Acting"
-                                        },
-                                        {
-                                            "name": "Footage"
-                                        }
-                                    ]
-                                },
-                                {
-                                    "name": "Editing"
-                                },
-                                {
-                                    "name": "Rendering"
-                                },
-                                {
-                                    "name": "Animation"
-                                }
-                            ]
-                        },
-                        {
-                            "name": "Audio",
-                            "sub_categories": [
-                                {
-                                    "name": "Editing & Mastering"
-                                },
-                                {
-                                    "name": "Voiceovers / Acting"
-                                },
-                                {
-                                    "name": "Composition",
-                                    "sub_categories": [
-                                        {
-                                            "name": "Soundtrack"
-                                        },
-                                        {
-                                            "name": "Jingles"
-                                        },
-                                        {
-                                            "name": "Pop"
-                                        },
-                                        {
-                                            "name": "Jazz"
-                                        },
-                                        {
-                                            "name": "Other"
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "name": "Graphics",
-                    "sub_categories": [
-                        {
-                            "name": "2D",
-                            "sub_categories": [
-                                {
-                                    "name": "Design",
-                                    "sub_categories": [
-                                        {
-                                            "name": "Characters"
-                                        },
-                                        {
-                                            "name": "Enviroments"
-                                        },
-                                        {
-                                            "name": "Clothing (Fashion)"
-                                        }
-                                    ]
-                                },
-                                {
-                                    "name": "Photography"
-                                },
-                                {
-                                    "name": "Editing",
-                                    "sub_categories": [
-                                        {
-                                            "name": "Photograpy Retouching"
-                                        }
-                                    ]
-                                },
-                                {
-                                    "name": "Illustration",
-                                    "sub_categories": [
-                                        {
-                                            "name": "Digital"
-                                        },
-                                        {
-                                            "name": "Physical Media"
-                                        }
-                                    ]
-                                }
-                            ]
-                        },
-                        {
-                            "name": "3D",
-                            "sub_categories": [
-                                {
-                                    "name": "Dead Matter",
-                                    "sub_categories": [
-                                        {
-                                            "name": "Objects"
-                                        },
-                                        {
-                                            "name": "Enviroments",
-                                            "sub_categories": [
-                                                {
-                                                    "name": "Terrain"
-                                                },
-                                                {
-                                                    "name": "Architecture"
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        categoriesInfo = {}
-        categoriesInfo['depth_level'] = 5
-        categoriesInfo['categories'] = categories
-        return QVariant(categoriesInfo)
+        categories = dtb.getCategories()
+        return categories
 
 class Taskhive(QApplication):
     def __init__(self, argv):
         QApplication.__init__(self, argv)
+
+
 
 
 
@@ -275,35 +156,28 @@ if __name__ == "__main__":
     API = TaskhiveAPI()
     BitMessageAPI = API.run_bitmessage()
     BitMessage = API.create_bitmessage_api()
-    print(BitMessage)
     if BitMessage in ['invalid keys_file settings', 'keyfile does not exist']:
         API.create_settings()
         BitMessage = API.create_bitmessage_api()
         BitMessageAPI = API.run_bitmessage()
-    print(BitMessageAPI)
     API.setup_channels()
     if API.run_bm.poll() is None:
-        print(API.find_running_bitmessage_port())
+        API.find_running_bitmessage_port()
     # API.create_posting(test_json)
     # API.generate_and_store_keys()
-    print(API.getPostings())
     engine = QQmlApplicationEngine()
-    engine.quit.connect(app.quit)
     
 
     file = FileInfo()
     categories = TaskhiveCategories()
     thread = TaskThread()
-    task = Task()
+    task = TaskSendMessage()
     context = engine.rootContext()
     context.setContextProperty('FileInfo', file)
     context.setContextProperty('TaskhiveCategories', categories)
     context.setContextProperty('TaskThread', thread)
     context.setContextProperty('Task', task)
-
     engine.load(QUrl('UI/main.qml'))
-    if engine.objectCreated:
-        print("Should be working")
-
+    atexit.register(API.shutdown_bitmessage)
     sys.exit(app.exec_())
 

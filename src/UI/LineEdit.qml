@@ -3,9 +3,13 @@ import QtQuick 2.0
 Item {
     id: lineEditItem
     property int fontSize: 18
-    property bool editable: input1.editable
+    property alias readOnly: input1.readOnly
     property alias text: input1.text
+    property alias validator: input1.validator
+    property alias length: input1.length
+    property alias acceptableInput: input1.acceptableInput
     signal accepted()
+
     Rectangle {
             anchors.fill: parent
             anchors.bottomMargin: 1
@@ -24,6 +28,7 @@ Item {
             anchors.rightMargin: 3
             font.pixelSize: parent.fontSize
             onAccepted: lineEditItem.accepted()
+
         }
 
 }

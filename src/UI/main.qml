@@ -63,6 +63,7 @@ ApplicationWindow {
                                 onClicked: {
                                     var createTaskComponent = Qt.createComponent("CreateTask.qml")
                                     var create_task = createTaskComponent.createObject(window)
+                                    print(createTaskComponent.errorString())
                                     create_task.show()
                                 }
                             }
@@ -97,7 +98,7 @@ ApplicationWindow {
                         Text {
                             text: modelData.task_title
                             color: "#fff"
-                            font.pointSize: 14
+                            font.pixelSize: 16
                             width: requestsList.width / 5
                             elide: Text.ElideRight
                         }
@@ -109,7 +110,7 @@ ApplicationWindow {
                         Text {
                             text: modelData.task_body
                             color: "#fff"
-                            font.pointSize: 14
+                            font.pixelSize: 16
                             width: requestsList.width / 5
                             elide: Text.ElideRight
                         }
@@ -121,7 +122,7 @@ ApplicationWindow {
                         Text {
                             text: modelData.task_payment_methods[0]
                             color: "#fff"
-                            font.pointSize: 14
+                            font.pixelSize: 16
                             width: requestsList.width / 5
                         }
                         Item {
@@ -131,7 +132,7 @@ ApplicationWindow {
                         Text {
                             text: modelData.task_escrow_required
                             color: "#fff"
-                            font.pointSize: 14
+                            font.pixelSize: 16
                             width: requestsList.width / 5
                         }
                         Item {
@@ -142,7 +143,7 @@ ApplicationWindow {
                         Text {
                             text: modelData.task_currency
                             color: "#fff"
-                            font.pointSize: 14
+                            font.pixelSize: 16
                             horizontalAlignment: Text.AlignHCenter
                             width: requestsList.width / 5
                         }
@@ -186,7 +187,7 @@ ApplicationWindow {
                             width: requestsList.width / 5
                             text: "Title"
                             color: "#fff"
-                            font.pointSize: 18
+                            font.pixelSize: 18
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                         }
@@ -203,7 +204,7 @@ ApplicationWindow {
                             width: requestsList.width / 5
                             text: "Description"
                             color: "#fff"
-                            font.pointSize: 18
+                            font.pixelSize: 18
                             horizontalAlignment: Text.AlignHCenter
                         }
                         Item {
@@ -219,7 +220,7 @@ ApplicationWindow {
                             width: requestsList.width / 5
                             text: "Payment Methods"
                             color: "#fff"
-                            font.pointSize: 18
+                            font.pixelSize: 18
                             horizontalAlignment: Text.AlignHCenter
                         }
                         Item {
@@ -235,7 +236,7 @@ ApplicationWindow {
                             width: requestsList.width / 5
                             text: "Escrow Required"
                             color: "#fff"
-                            font.pointSize: 18
+                            font.pixelSize: 18
                             horizontalAlignment: Text.AlignHCenter
                         }
                         Rectangle {
@@ -247,7 +248,7 @@ ApplicationWindow {
                             width: requestsList.width / 5
                             text: "Currency"
                             color: "#fff"
-                            font.pointSize: 18
+                            font.pixelSize: 18
                             horizontalAlignment: Text.AlignHCenter
                         }
                         Rectangle {
@@ -276,7 +277,7 @@ ApplicationWindow {
                 anchors.leftMargin: 30
                 anchors.rightMargin: 30
                 id: requestsList
-                model: window.tasks
+                model: window.tasks.requests
                 anchors.right: parent.right
                 anchors.left: parent.left
                 anchors.top: requestsTitle.bottom
@@ -330,11 +331,28 @@ ApplicationWindow {
                     }
                 }
                 Rectangle {
-                anchors.bottom: offersTitle.bottom
-                height: 1
-                width: parent.width
+                    anchors.bottom: offersTitle.bottom
+                    height: 1
+                    width: parent.width
+                }
             }
-        }
+            ListView {
+                anchors.leftMargin: 30
+                anchors.rightMargin: 30
+                id: offersList
+                model: window.tasks.offers
+                anchors.right: parent.right
+                anchors.left: parent.left
+                anchors.top: offersTitle.bottom
+                anchors.bottom: parent.bottom
+                delegate: taskComponent
+                header: headerComponent
+                clip: true
+                headerPositioning: ListView.OverlayHeader
+                highlight: highlight
+                highlightFollowsCurrentItem: false
+                focus: true
+            }
         }
         Image {
              id: img

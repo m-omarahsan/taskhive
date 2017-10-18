@@ -594,7 +594,10 @@ class Taskhive(object):
 
     def getPostings(self):
         messages = self.inbox()
-        verified_messages = []
+        verified_messages = {
+            "requests": [],
+            "offers": []
+        }
         for msg in messages:
             body = msg['message']
             decoded_body = base64.b64decode(body)
@@ -604,14 +607,16 @@ class Taskhive(object):
                 continue
             try:
                 body_json = json.loads(body_json.decode('utf-8'))
-            except TypeError:
-                raise APIError(1, 'JSON Data is incorrect')
+            except (TypeError, UnicodeDecodeError):
+                # raise APIError(1, 'JSON Data is incorrect')
                 continue
 
             verified = self.verify_json(body_json)
-            print(verified)
             if verified:
-                verified_messages.append(verified)
+                if verified['task_type'].lower() == 'request':
+                    verified_messages['requests'].append(verified)
+                elif verified['task_type'].lower() == 'offer':
+                    verified_messages['offers'].append(verified)
         return verified_messages
 
 
@@ -623,7 +628,7 @@ class Taskhive(object):
         task_type = task_json['task_type']
         categories = task_json['task_categories']
         if task_type.lower() == 'offer':
-            pass
+            prelim, signed_json = self.create_request_json(task_INFO)
         elif task_type.lower() == 'request':
             prelim, signed_json = self.create_request_json(task_INFO)
         channels = database.getChannelByCategory(categories)
@@ -692,12 +697,13 @@ class Taskhive(object):
         if temporary_json['task_type'].lower() == 'request':
             json_result = self.verify_request(temporary_json)
         elif temporary_json['task_type'].lower() == 'offer':
-            pass
+            json_result = self.verify_offer(temporary_json)
         else:
             return False
         if not json_result:
             return False
         result = temporary_json
+        # print(result, temporary_json['task_type'].lower())
         return result
         
 
@@ -707,6 +713,11 @@ class Taskhive(object):
                 return False
         return True
 
+    def verify_offer(self, task_data):
+        for data in EXPECTED_JSON_DATA:
+            if data not in task_data:
+                return False
+        return True
 
 # Task requests and offers have an identical JSON array format, differing only in task_type.
 #   [{
