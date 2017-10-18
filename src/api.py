@@ -97,9 +97,10 @@ class Taskhive(object):
                             self.bitmessage_dict[process.pid] = {}
                             process_path = each
             else:
-                if 'bitmessagemain' in process_name:
+                print(process_name)
+                if 'bitmessagemain.' in process_name:
                     for each in process.cmdline():
-                        if 'bitmessagemain' in each:
+                        if 'bitmessagemain.' in each:
                             self.bitmessage_dict[process.pid] = {}
                             process_path = each
             if process_path is not None:
@@ -125,7 +126,7 @@ class Taskhive(object):
                     print('apiport is missing from', keysfile)
                 except configparser.NoSectionError:
                     print('bitmessagesettings section is missing from', keysfile)
-                self.bitmessage_dict[process.pid]['file'] = each
+                self.bitmessage_dict[process.pid]['file'] = each.replace('.', '')
                 self.bitmessage_dict[process.pid]['port'] = bitmessage_port
                 self.bitmessage_dict[process.pid]['apiport'] = bitmessage_apiport
         return self.bitmessage_dict
@@ -284,6 +285,7 @@ class Taskhive(object):
                 api_password = CONFIG.get('bitmessagesettings', 'apipassword')
                 api_interface = CONFIG.get('bitmessagesettings', 'apiinterface')
                 api_port = CONFIG.getint('bitmessagesettings', 'apiport')
+                print(api_port)
                 api_info = 'http://{0}:{1}@{2}:{3}/'.format(api_username,
                                                             api_password,
                                                             api_interface,
@@ -351,15 +353,16 @@ class Taskhive(object):
                                                cwd=TASKHIVE_DIR,
                                                shell=True)
             else:
+                print(BITMESSAGE_PROGRAM)
                 self.run_bm = subprocess.Popen(BITMESSAGE_PROGRAM,
                                                stdout=subprocess.PIPE,
                                                stderr=subprocess.PIPE,
                                                stdin=subprocess.PIPE,
                                                bufsize=0,
                                                cwd=TASKHIVE_DIR,
-                                               shell=True,
                                                preexec_fn=os.setpgrp,
                                                close_fds=True)
+                print(self.run_bm.poll())
         except OSError:
             logger.warn('Taskhive API Error - Code:(3) Message:(can not find our bitmessagemain.py)')
             raise APIError(3, 'can not find our bitmessagemain.py')
