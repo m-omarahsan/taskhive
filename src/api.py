@@ -609,6 +609,7 @@ class Taskhive(object):
             except:
                 continue
             try:
+                print(body_json)
                 body_json = json.loads(body_json.decode('utf-8'))
             except (TypeError, UnicodeDecodeError):
                 # raise APIError(1, 'JSON Data is incorrect')
