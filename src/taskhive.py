@@ -68,6 +68,8 @@ class TaskThread(QThread):
         while not self._paused:
             result = self._localAPI.getPostings()
             self.newTask.emit(result)
+            connections, _, _, _ = self._localAPI.client_connections()
+            print(connections)
             time.sleep(5)
 
     def handle_filters(self):
@@ -155,6 +157,7 @@ if __name__ == "__main__":
     app = Taskhive(sys.argv)
     API = TaskhiveAPI()
     BitMessageAPI = API.run_bitmessage()
+    time.sleep(10)
     BitMessage = API.create_bitmessage_api()
     if BitMessage in ['invalid keys_file settings', 'keyfile does not exist']:
         API.create_settings()
@@ -162,7 +165,9 @@ if __name__ == "__main__":
         BitMessageAPI = API.run_bitmessage()
     API.setup_channels()
     if API.run_bm.poll() is None:
-        API.find_running_bitmessage_port()
+        print(API.find_running_bitmessage_port())
+    connections, _, _, _ = API.client_connections()
+    print(connections)
     # API.create_posting(test_json)
     # API.generate_and_store_keys()
     engine = QQmlApplicationEngine()
