@@ -285,13 +285,11 @@ class Taskhive(object):
                 api_password = CONFIG.get('bitmessagesettings', 'apipassword')
                 api_interface = CONFIG.get('bitmessagesettings', 'apiinterface')
                 api_port = CONFIG.getint('bitmessagesettings', 'apiport')
-                print(api_port)
                 api_info = 'http://{0}:{1}@{2}:{3}/'.format(api_username,
                                                             api_password,
                                                             api_interface,
                                                             api_port)
                 self.api = xmlrpc.client.ServerProxy(api_info)
-                print(self.api_check())
             else:
                 return 'invalid keys_file settings'
                 
@@ -353,7 +351,6 @@ class Taskhive(object):
                                                cwd=TASKHIVE_DIR,
                                                shell=True)
             else:
-                print(BITMESSAGE_PROGRAM)
                 self.run_bm = subprocess.Popen(BITMESSAGE_PROGRAM,
                                                stdout=subprocess.PIPE,
                                                stderr=subprocess.PIPE,
@@ -609,7 +606,6 @@ class Taskhive(object):
             except:
                 continue
             try:
-                print(body_json)
                 body_json = json.loads(body_json.decode('utf-8'))
             except (TypeError, UnicodeDecodeError, ValueError, JSONDecodeError):
                 # raise APIError(1, 'JSON Data is incorrect')

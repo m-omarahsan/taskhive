@@ -35,6 +35,21 @@ class Channel(Base):
 		return "<Channel(channel_HEX='{}', name='{}')>".format(self.channel_HEX, self.name)
 
 
+class Profile(Base):
+
+	__tablename__ = 'profile'
+	id = Column(String, primary_key=True)
+	public_key = Column(String)
+	address = Column(String)
+	address_encoded = Column(String)
+	privacy_level = Column(Integer)
+
+
+class UserCategories(Base):
+	__tablename__ = 'usercategories'
+	id = Column(Integer, primary_key=True)
+	hex_code = Column(String, ForeignKey('category.id'))
+	profile = Column(String, ForeignKey('profile.id'))
 
 
 Base.metadata.create_all(engine)
@@ -93,6 +108,13 @@ def createChannelTypes(types=['Offers', 'Requests']):
 			ses.add(typ)
 	ses.commit()
 	return ses.query(ChannelType).all()
+
+
+
+def getProfile():
+	profile = ses.query(Profile).all().first()
+	categoriesInfo = ses.query(UserCategories).filter_by(id=profile.id).first()
+	return ses.query(Profile).all()
 
 
 def storeChannels(channelInfo):

@@ -129,7 +129,4 @@ Window {
             anchors.right: parent.right
         }
     }
-    property var splashWindow: Splash {
-        onTimeout: wizard.visible = true
-    }
 }

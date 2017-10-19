@@ -1,6 +1,7 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.0
 import QtQuick.Layouts 1.3
+import QtQuick.Dialogs 1.2
 ApplicationWindow {
         id: window
         minimumWidth: 1200
@@ -9,6 +10,8 @@ ApplicationWindow {
         title: "Taskhive"
         visible: true
         property variant tasks: []
+        property variant requests: []
+        property variant offers: []
         property variant selectedTask: ListModel
         property variant userData: {"guest": true}
          function updateList(taskList){
@@ -61,10 +64,15 @@ ApplicationWindow {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    var createTaskComponent = Qt.createComponent("CreateTask.qml")
-                                    var create_task = createTaskComponent.createObject(window)
-                                    print(createTaskComponent.errorString())
-                                    create_task.show()
+                                    if(userData.guest){
+                                        warningDialog.open()
+                                    }
+                                    else {
+                                        var createTaskComponent = Qt.createComponent("CreateTask.qml")
+                                        var create_task = createTaskComponent.createObject(window)
+                                        print(createTaskComponent.errorString())
+                                        create_task.show()
+                                    }
                                 }
                             }
                         }
@@ -156,7 +164,7 @@ ApplicationWindow {
                         onDoubleClicked: {
                             parentContent.ListView.view.currentIndex = index
                             parentContent.forceActiveFocus()
-                            window.selectedTask = window.tasks[index]
+                            window.selectedTask = parentContent.ListView.view.model[index]
                             var component = Qt.createComponent("TaskInformation.qml")
                             var task_window = component.createObject(window)
                             task_window.show()
@@ -377,6 +385,23 @@ ApplicationWindow {
              target: TaskThread
              onNewTask:{
                 window.tasks = result
+                window.requests = result.requests
+                window.offers = result.offers
+             }
+         }
+         MessageDialog {
+             id: warningDialog
+             text: "You can't create a task if you don't have a Taskhive User.\n Do you want to go through the Profile Wizard?"
+             standardButtons: StandardButton.Yes | StandardButton.No
+             title: "Missing User Profile"
+             icon: StandardIcon.Warning
+             onYes: {
+                 var component = Qt.createComponent("Wizard/Wizard.qml")
+                 var wizard_window = component.createObject(window)
+                 wizard_window.show()
+             }
+             onNo: {
+                 warningDialog.close()
              }
          }
          Component.onCompleted: {
