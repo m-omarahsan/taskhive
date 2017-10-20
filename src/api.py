@@ -311,6 +311,37 @@ class Taskhive(object):
         CONFIG.set('taskhivekeys', 'address_encoded', address_encoded)
         with open(KEYS_FILE, 'w') as configfile:
             CONFIG.write(configfile)
+        return private_key, public_key, address, address_encoded
+
+
+
+    def verifyProfile(self):
+        userData = {
+            "guest": True
+        }
+        profile = database.getProfile()
+        if not profile:
+            return userData
+        else:
+            private_key = profile['private_key']
+            public_key = address_generator.private_to_public(private_key)
+            if public_key == profile['public_key']:
+                userData['guest'] = False
+                userData['categories'] = profile['categories']
+                userData['privacy_level'] = profile['privacy_level']
+                userData['handle'] = profile['handle']
+        return userData
+
+
+    def generateProfile(self, profile_DATA):
+        profile = database.getProfile()
+        if not profile:
+            private_key, public_key, address, address_encoded = self.generate_and_store_keys()
+            profile_DATA['private_key'] = private_key
+            profile_DATA['public_key'] = public_key
+            profile_DATA['address'] = address
+            profile_DATA['address_encoded'] = address_encoded
+            database.createProfile(profile_DATA)
 
     def retrieve_keys(self):
         self.keys_file_exists(KEYS_FILE)
@@ -589,6 +620,7 @@ class Taskhive(object):
                         'type': chan_type.id
                     }
                     channel_INFO.append(chan)
+        print(channel_INFO)
         database.storeChannels(channel_INFO)
 
 

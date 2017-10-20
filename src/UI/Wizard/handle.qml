@@ -1,7 +1,8 @@
 import QtQuick 2.0
 import QtQuick.Controls 1.2
-import "../"
 import QtGraphicalEffects 1.0
+import "../"
+
 Item {
     Rectangle {
         color: "transparent"
@@ -61,7 +62,7 @@ Item {
                    if(searchHandle.textValue != ""){
                        wizardStack.push(Qt.resolvedUrl('skills.qml'))
                        profileStack.push(Qt.resolvedUrl('profileSkills.qml'))
-                       wizard.profileUser = searchHandle.textValue
+                       wizard.handle = searchHandle.textValue
                        wizard.categories = TaskhiveCategories.getCategories()['categories']
                    }
                }

@@ -13,11 +13,11 @@ Window {
     color: "#3D3D3D"
     visible: false
     title: "Taskhive Wizard"
-    property string profileUser: "buyguy"
     property variant portfolioList: ListModel {}
     property variant profiles: ListModel {}
     property variant categories: ListModel {}
     property variant selectedSkills: ListModel {}
+    property string handle
 
 
     function getCategories(){
@@ -102,7 +102,7 @@ Window {
                 Layout.fillWidth: true
                 Text {
                     id: profileName
-                    text: profileUser
+                    text: handle
                     anchors.left: parent.left
                     anchors.leftMargin: 20
                     font.pointSize: 22

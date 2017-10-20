@@ -405,6 +405,9 @@ ApplicationWindow {
              }
          }
          Component.onCompleted: {
+             var profile = Profile.verifyProfile()
+             window.userData = profile
+             print(window.userData)
              TaskThread.start()
          }
     }

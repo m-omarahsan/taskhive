@@ -39,6 +39,7 @@ class Profile(Base):
 
 	__tablename__ = 'profile'
 	id = Column(String, primary_key=True)
+	handle = Column(String)
 	public_key = Column(String)
 	address = Column(String)
 	address_encoded = Column(String)
@@ -71,7 +72,7 @@ def generateCategories():
 			if line.strip():
 				elements = line.split()
 				hex_code = elements[0]
-				name = elements[1]
+				name = ''.join([el + ' ' for el in elements[1:]]).strip()
 				new_cat = Category(id=hex_code, name=name)
 				ses.add(new_cat)
 				try:
@@ -112,9 +113,30 @@ def createChannelTypes(types=['Offers', 'Requests']):
 
 
 def getProfile():
-	profile = ses.query(Profile).all().first()
+	try:
+		profile = ses.query(Profile).all()[0]
+	except:
+		return False
 	categoriesInfo = ses.query(UserCategories).filter_by(id=profile.id).first()
 	return ses.query(Profile).all()
+
+
+
+def createProfile(profile_DATA):
+	new_prof = Profile(
+		id=profile_DATA['private_key'],
+		handle=profile_DATA['handle'],
+		public_key=profile_DATA['public_key'],
+		address=profile_DATA['address'],
+		address_encoded=profile_DATA['address_encoded'],
+		privacy_level=profile_DATA['privacy_level']
+	)
+	ses.add(new_prof)
+	for cat in profile_DATA['categories']:
+		new_usercat = UserCategories(hex_code=cat['hex_code'], profile=profile_DATA['private_key'])
+		ses.add(new_usercat)
+	ses.commit()
+
 
 
 def storeChannels(channelInfo):

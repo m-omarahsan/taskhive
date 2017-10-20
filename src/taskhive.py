@@ -100,6 +100,17 @@ class TaskSendMessage(QThread):
 
 
 
+class TaskProfile(QThread):
+
+    def __init__(self):
+        QObject.__init__(self)
+        self._localAPI = TaskhiveAPI()
+
+    @pyqtSlot(result=QVariant)
+    def verifyProfile(self):
+        return self._localAPI.verifyProfile()
+
+
 class TaskhiveAddress(QObject):
     def __init__(self):
         QObject.__init__(self)
@@ -177,11 +188,13 @@ if __name__ == "__main__":
     categories = TaskhiveCategories()
     thread = TaskThread()
     task = TaskSendMessage()
+    profile = TaskProfile()
     context = engine.rootContext()
     context.setContextProperty('FileInfo', file)
     context.setContextProperty('TaskhiveCategories', categories)
     context.setContextProperty('TaskThread', thread)
     context.setContextProperty('Task', task)
+    context.setContextProperty('Profile', profile)
     engine.load(QUrl('UI/main.qml'))
     atexit.register(API.shutdown_bitmessage)
     sys.exit(app.exec_())
