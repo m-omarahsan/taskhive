@@ -47,7 +47,7 @@ Item {
             anchors.left: parent.left
             anchors.top: uniqueHandleText.bottom
             anchors.topMargin: 100
-            height: 100
+            height: 180
             background: Rectangle {
                 color: "#737373"
             }
@@ -58,9 +58,9 @@ Item {
                     id: tabData
                     property bool selected: false
                     text: modelData.name
-                    width: Math.max(100, frame.width / wizard.categories.length)
                     font.pointSize: 18
                     height: parent.height
+                    width: 200
                     background: Rectangle {
                         border.color: "transparent"
                         color: tabData.checked ? "#BD9CBE": "#737373"
@@ -73,9 +73,13 @@ Item {
                             id: textContent
                             text: tabData.text
                             font: tabData.font
+                            width: parent.width
                             color: "#FEFEFE"
                             anchors.horizontalCenter: parent.horizontalCenter
                             anchors.verticalCenter: parent.verticalCenter
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            wrapMode: Text.WordWrap
                         }
                         Image {
                             source: "../images/07.svg"
@@ -110,7 +114,7 @@ Item {
                             anchors.right: parent.right
                             anchors.left: parent.left
                             anchors.top: parent.top
-                            height: 100
+                            height: 180
                             background: Rectangle {
                                 color: "#958096"
                             }
@@ -121,8 +125,8 @@ Item {
                                     id: currentTab
                                     text: modelData.name
                                     font.pointSize: 18
-                                    width: Math.max(100, currentTab.width / modelData.length)
                                     height: parent.height
+                                    width: 200
                                     background: Rectangle {
                                         border.color: "transparent"
                                         color: currentTab.checked ? "#958096": "#8D758E"
@@ -135,9 +139,13 @@ Item {
                                             id: textContent2
                                             text: currentTab.text
                                             font: currentTab.font
+                                            width: parent.width
                                             color: "#FEFEFE"
                                             anchors.horizontalCenter: parent.horizontalCenter
                                             anchors.verticalCenter: parent.verticalCenter
+                                            wrapMode: Text.WordWrap
+                                            horizontalAlignment: Text.AlignHCenter
+                                            verticalAlignment: Text.AlignVCenter
                                         }
                                         Image {
                                             source: "../images/07.svg"
@@ -148,179 +156,30 @@ Item {
                                             anchors.leftMargin: 5
                                             anchors.verticalCenter: parent.verticalCenter
                                         }
-                                    }
-                                }
-                            }
-                        }
-                        StackLayout {
-                            id: stack3
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.top: homeTabTab.bottom
-                            anchors.bottom: parent.bottom
-                            currentIndex: homeTabTab.currentIndex
-                            Repeater {
-                                model: modelData.sub_categories
-                                Item {
-                                    TabBar {
-                                        id: tabBar
-                                        anchors.right: parent.right
-                                        anchors.left: parent.left
-                                        anchors.top: parent.top
-                                        height: 100
-                                        background: Rectangle {
-                                            color: "#483E48"
-                                        }
-                                        Repeater {
-                                            model: modelData.sub_categories
-                                            TabButton {
-
-                                                property bool selected: false
-                                                id: tab2
-                                                text: modelData.name
-                                                width: Math.max(100, tab2.width / modelData.length)
-                                                font.pointSize: 18
-                                                height: parent.height
-                                                background: Rectangle {
-                                                    border.color: "transparent"
-                                                    color: tab2.checked ? "#483E48": "#655665"
-                                                }
-                                                contentItem: Rectangle {
-                                                    height: tab2.height
-                                                    width: tab2.width
-                                                    color: "transparent"
-                                                    Flow {
-                                                        anchors.left: parent.left
-                                                        spacing: 5
-                                                        anchors.leftMargin: (parent.width - textContent3.contentWidth - spacing) / 2
-                                                        anchors.top: parent.top
-                                                        anchors.topMargin: (parent.height - textContent3.contentHeight - spacing) /2
-                                                        anchors.fill: parent
-                                                        Text {
-                                                            id: textContent3
-                                                            text: tab2.text
-                                                            font: tab2.font
-                                                            color: "#FEFEFE"
-
-                                                        }
-                                                        Image {
-                                                            source: "../images/07.svg"
-                                                            sourceSize.height: 30
-                                                            sourceSize.width: 30
-                                                            visible: tab2.selected ? true: false
-
-                                                        }
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            onDoubleClicked: {
+                                                currentTab.selected = true
+                                                var found = false;
+                                                var someText = frame.itemAt(stack1.currentIndex).text;
+                                                for(var skill in wizard.selectedSkills){
+                                                    if(skill.name === someText){
+                                                        skill.sub_categories.append({"name":currentTab.text});
+                                                        found = true;
                                                     }
                                                 }
-                                            }
-                                        }
-                                    }
-                                    StackLayout {
-                                        id: stack2
-                                        anchors.left: parent.left
-                                        anchors.right: parent.right
-                                        anchors.top: tabBar.bottom
-                                        anchors.bottom: parent.bottom
-                                        currentIndex: tabBar.currentIndex
-                                        Repeater {
-                                            model: modelData.sub_categories
-                                            Item {
-                                                anchors.fill: parent
-                                                TabBar {
-                                                    id: lv4Tab
-                                                    anchors.right: parent.right
-                                                    anchors.left: parent.left
-                                                    anchors.top: parent.top
-                                                    height: 100
-                                                    background: Rectangle {
-                                                        color: "#2D272E"
-                                                    }
-                                                    Repeater {
-                                                        model: modelData.sub_categories
-                                                        TabButton {
-                                                            id: lv4TabButton
-                                                            property bool selected: false
-                                                            text: modelData.name
-                                                            width: Math.max(100, lv4Tab.width / modelData.length)
-                                                            font.pointSize: 18
-                                                            height: parent.height
-                                                            background: Rectangle {
-                                                                border.color: "transparent"
-                                                                color: lv4TabButton.checked ? "#2D272E": "#39313A"
-                                                            }
-                                                            contentItem: Rectangle {
-                                                                height: lv4TabButton.height
-                                                                width: lv4TabButton.width
-                                                                color: "transparent"
-
-                                                                Flow {
-                                                                    anchors.left: parent.left
-                                                                    spacing: 5
-                                                                    anchors.leftMargin: (parent.width - textContent4.contentWidth - spacing) / 2
-                                                                    anchors.top: parent.top
-                                                                    anchors.topMargin: (parent.height - textContent4.contentHeight - spacing) /2
-                                                                    anchors.fill: parent
-                                                                    Text {
-                                                                        id: textContent4
-                                                                        text: lv4TabButton.text
-                                                                        font: lv4TabButton.font
-                                                                        color: "#FEFEFE"
-
-                                                                    }
-                                                                    Image {
-                                                                        source: "../images/07.svg"
-                                                                        sourceSize.height: 30
-                                                                        sourceSize.width: 30
-                                                                        visible: lv4TabButton.selected ? true: false
-
-                                                                    }
-                                                                }
-
-                                                            }
-                                                            MouseArea {
-                                                                anchors.fill: lv4TabButton
-                                                                acceptedButtons: Qt.RightButton
-                                                                onClicked: {
-                                                                    if(mouse.button == Qt.RightButton){
-                                                                        menu.x = mouseX
-                                                                        menu.y = mouseY
-                                                                        menu.open()
-                                                                        tabBar.itemAt(stack2.currentIndex).selected = true
-                                                                        homeTabTab.itemAt(stack3.currentIndex).selected = true
-                                                                        frame.itemAt(stack1.currentIndex).selected = true
-                                                                        parent.selected = true
-                                                                    }
-                                                                }
-                                                            }
-                                                            Menu {
-                                                                id: menu
-                                                                y: lv4TabButton.height
-                                                                MenuItem {
-                                                                    text: "Add this category."
-                                                                }
-                                                            }
-                                                        }
-                                                    }
+                                                if(!found){
+                                                    print(currentTab.text)
+                                                    wizard.selectedSkills.append({"name":someText, "sub_categories":[{"name":currentTab.text}]})
                                                 }
-                                                Rectangle {
-                                                    anchors.fill: parent
-                                                    color: "#2D272E"
-                                                    visible: modelData.sub_categories ? false: true
-                                                    Text {
-                                                        text: "No subcategories available."
-                                                        font.pointSize: 18
-                                                        color: "#FEFEFE"
-                                                        horizontalAlignment: Text.AlignHCenter
-                                                        verticalAlignment: Text.AlignVCenter
-                                                    }
-                                                }
+                                                print(window.selectedSkills)
                                             }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
+                }
                 }
             }
         Rectangle{

@@ -17,7 +17,7 @@ Window {
     property variant profiles: ListModel {}
     property variant categories: ListModel {}
     property variant selectedSkills: ListModel {}
-    property string handle
+    property string handle: "Guest"
 
 
     function getCategories(){

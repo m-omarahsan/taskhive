@@ -58,12 +58,33 @@ Base.metadata.create_all(engine)
 
 def getCategories():
 	cats = []
+	count = 0
+	firstRun = True
 	for cat in ses.query(Category).all():
-		cats.append({
-			"hex": cat.id,
-			"name": cat.name
-			})
-	return cats
+		hex_codes = [cat.id[i:i+2] for i in range(0, len(cat.id), 2)]
+		if firstRun:
+			cats.append({
+				"hex": cat.id,
+				"name": cat.name,
+				"sub_categories": []
+				})
+			firstRun = False
+			continue
+		if len(hex_codes) > 1:
+			cats[count]['sub_categories'].append({
+					"hex": cat.id,
+					"name": cat.name
+
+				})
+		else:
+			cats.append({
+				"hex": cat.id,
+				"name": cat.name,
+				"sub_categories": []
+				})
+			count += 1
+
+	return {"categories":cats}
 
 
 def generateCategories():
