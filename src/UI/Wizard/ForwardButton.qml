@@ -8,6 +8,7 @@ Item {
     property int sizeW: 80
     height: sizeH
     width: sizeW
+    signal clicked()
     Image {
         id: confirmButton
         anchors.horizontalCenter: parent.horizontalCenter
@@ -18,10 +19,7 @@ Item {
         anchors.centerIn: parent
         MouseArea {
             anchors.fill: parent
-            onClicked: {
-                wizardStack.push(Qt.resolvedUrl(wizardStackURL))
-                profileStack.push(Qt.resolvedUrl(profileStackURL))
-            }
+            onClicked: item1.clicked()
        onPressed: {
            overlay.visible = true
        }

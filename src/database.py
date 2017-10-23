@@ -53,7 +53,9 @@ class UserCategories(Base):
 	profile = Column(String, ForeignKey('profile.id'))
 
 
+
 Base.metadata.create_all(engine)
+
 
 
 def getCategories():

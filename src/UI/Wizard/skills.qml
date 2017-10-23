@@ -162,9 +162,11 @@ Item {
                                                 currentTab.selected = true
                                                 var found = false;
                                                 var someText = frame.itemAt(stack1.currentIndex).text;
-                                                for(var skill in wizard.selectedSkills){
-                                                    if(skill.name === someText){
-                                                        skill.sub_categories.append({"name":currentTab.text});
+                                                print(someText)
+                                                for(var i = 0; i<wizard.selectedSkills.count; i++){
+                                                    if(wizard.selectedSkills.get(i).name === someText){
+                                                        wizard.selectedSkills.get(i).sub_categories.append({"name":currentTab.text});
+                                                        wizard.skills.push({"name": someText})
                                                         found = true;
                                                     }
                                                 }
@@ -196,8 +198,10 @@ Item {
             ForwardButton {
                 id: confirmButton
                 anchors.right: parent.right
-                wizardStackURL: 'portfolio.qml'
-                profileStackURL: 'profilePortfolio.qml'
+                onClicked: {
+                    wizardStack.push(Qt.resolvedUrl('portfolio.qml'))
+                    profileStack.push(Qt.resolvedUrl('profilePortfolio.qml'))
+                }
             }
             BackButton {
                 id: back

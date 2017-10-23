@@ -333,6 +333,19 @@ class Taskhive(object):
         return userData
 
 
+    def createProfile(self, profile_DATA):
+        private_key, public_key, address, address_encoded = self.generate_and_store_keys()
+        new_payload = {
+            "private_key": private_key,
+            "public_key": public_key,
+            "address": address,
+            "address_encoded": address_encoded
+        }
+        new_payload['handle'] = profile_DATA['handle']
+        new_payload['privacy_level'] = profile_DATA['privacy_level']
+        database.createProfile(new_payload)
+
+
     def generateProfile(self, profile_DATA):
         profile = database.getProfile()
         if not profile:

@@ -60,6 +60,7 @@ Item {
                         MouseArea {
                             anchors.fill: parent
                             onClicked: portfolioList.remove(gridPortfolio.currentIndex)
+                            cursorShape: Qt.PointingHandCursor
                         }
                     }
                 }

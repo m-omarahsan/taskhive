@@ -119,9 +119,11 @@ Item {
             color: "transparent"
             ForwardButton {
                 id: confirmButton
-                wizardStackURL: Qt.resolvedUrl('profile.qml')
-                profileStackURL: Qt.resolvedUrl('profileList.qml')
                 anchors.right: parent.right
+                onClicked: {
+                    wizardStack.push(Qt.resolvedUrl('profile.qml'))
+                    profileStack.push(Qt.resolvedUrl('profileList.qml'))
+                }
             }
 
             BackButton {

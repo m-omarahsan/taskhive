@@ -313,8 +313,10 @@ Rectangle {
             id: confirmButton
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            wizardStackURL:'privacySetting.qml'
-            profileStackURL: 'profilePrivacy.qml'
+            onClicked: {
+                wizardStack.push(Qt.resolvedUrl('privacySetting.qml'))
+                profileStack.push(Qt.resolvedUrl('profilePrivacy.qml'))
+            }
 
         }
 

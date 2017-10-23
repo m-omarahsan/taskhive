@@ -11,6 +11,7 @@ from api import Taskhive as TaskhiveAPI
 import database as dtb
 import atexit
 import time
+import json
 import datetime
 
 class FileInfo(QObject):
@@ -111,6 +112,20 @@ class TaskProfile(QThread):
         return self._localAPI.verifyProfile()
 
 
+
+class CreateProfile(QThread):
+    
+
+    def __init__(self):
+        QObject.__init__(self)
+        self._localAPI = TaskhiveAPI()
+
+    @pyqtSlot(QVariant)
+    def create(self, profile_DATA):
+        profile_JSON =  profile_DATA.toVariant()
+        self._localAPI.createProfile(profile_JSON)
+
+
 class TaskhiveAddress(QObject):
     def __init__(self):
         QObject.__init__(self)
@@ -187,6 +202,7 @@ if __name__ == "__main__":
     file = FileInfo()
     categories = TaskhiveCategories()
     thread = TaskThread()
+    createProfile = CreateProfile()
     task = TaskSendMessage()
     profile = TaskProfile()
     context = engine.rootContext()
@@ -194,6 +210,7 @@ if __name__ == "__main__":
     context.setContextProperty('TaskhiveCategories', categories)
     context.setContextProperty('TaskThread', thread)
     context.setContextProperty('Task', task)
+    context.setContextProperty('CreateProfile', createProfile)
     context.setContextProperty('Profile', profile)
     engine.load(QUrl('UI/main.qml'))
     atexit.register(API.shutdown_bitmessage)

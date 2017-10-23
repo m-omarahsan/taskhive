@@ -1,5 +1,7 @@
 import QtQuick 2.0
+import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
+import QtQuick.Dialogs 1.2
 import QtQuick.Controls.Styles 1.4
 Item{
     Rectangle {
@@ -41,6 +43,8 @@ Item{
             anchors.right: parent.right
             anchors.left: parent.left
             spacing: 5
+            ExclusiveGroup { id: privacyExclusive }
+
             RowLayout {
                 anchors.right: parent.right
                 anchors.rightMargin: 0
@@ -54,6 +58,7 @@ Item{
                 CustomRadioButton {
                     radioLabel: qsTr("Pseudonymous")
                     Layout.preferredWidth: 230
+                    exclusiveGroup: privacyExclusive
                 }
                 Text {
                     text: qsTr("Your interactions are limited for mutual protection, and you may only transact in cryptocurrencies.")
@@ -85,6 +90,7 @@ Item{
                         CustomRadioButton {
                             radioLabel: qsTr("Private")
                             Layout.preferredWidth: 230
+                            exclusiveGroup: privacyExclusive
                         }
                         Text {
                             text: qsTr("Your profile contains only what you want it to, and you can choose what payment methods fit your needs, including those which reveal your personal identity.")
@@ -111,6 +117,7 @@ Item{
                     CustomRadioButton {
                         radioLabel: qsTr("Private")
                         Layout.preferredWidth: 230
+
                     }
                     Text {
                         text: qsTr("Your profile contains only what you want it to, and you can choose what payment methods fit your needs, including those which reveal your personal identity.")
@@ -125,6 +132,16 @@ Item{
 
         }
     }
+
+
+    MessageDialog {
+        id: warningDialogOpt
+        text: "Please select an option to continue."
+        standardButtons: StandardButton.Ok
+        title: "Option not selected"
+        icon: StandardIcon.Warning
+    }
+
     Rectangle {
         id: buttons
         height: wizard.height * 0.10
@@ -141,7 +158,22 @@ Item{
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             wizardStackURL:'privacySetting.qml'
+            onClicked: {
+                wizardStack.push(Qt.resolvedUrl('privacySetting.qml'))
+                if(privacyExclusive.current){
+                    wizardStack.push(Qt.resolvedUrl('privacySetting.qml'))
+                    mainStack.push(Qt.resolvedUrl('finishedProfile.qml'))
+                    var profileData = {
+                        "selectedSkills": wizard.skills,
+                        "handle": wizard.handle,
+                        "privacy_level": privacyExclusive.current.radioLabel
+                    }
+                    CreateProfile.create(profileData)
+                }else {
+                    warningDialogOpt.open()
+                }
 
+            }
 
         }
 
