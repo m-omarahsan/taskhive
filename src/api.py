@@ -323,13 +323,12 @@ class Taskhive(object):
         if not profile:
             return userData
         else:
-            private_key = profile['private_key']
+            private_key = profile.id
             public_key = address_generator.private_to_public(private_key)
-            if public_key == profile['public_key']:
+            if public_key == profile.public_key:
                 userData['guest'] = False
-                userData['categories'] = profile['categories']
-                userData['privacy_level'] = profile['privacy_level']
-                userData['handle'] = profile['handle']
+                userData['privacy_level'] = profile.privacy_level
+                userData['handle'] = profile.handle
         return userData
 
 
@@ -345,6 +344,7 @@ class Taskhive(object):
             }
             new_payload['handle'] = profile_DATA['handle']
             new_payload['privacy_level'] = profile_DATA['privacy_level']
+            new_payload['categories'] = profile_DATA['categories']
             database.createProfile(new_payload)
 
 
@@ -713,6 +713,10 @@ class Taskhive(object):
         wif_private_key = address_generator.private_to_wif(private_key, address_generator.WIF_VERSION_BYTE, address_generator.TYPE_PUB)
         sign = bitcoin.sign_message_with_wif_privkey(wif_private_key, json_string)
         encoded_sign = base64.b64encode(sign)
+        database.storeTask({
+            "task_id": task_id,
+            "bit_address": task_BM_address
+        })
         final_signed_json['task_data'] = json_string
         final_signed_json['task_data_signed'] = encoded_sign.decode('utf-8')
         return preliminary_json, final_signed_json

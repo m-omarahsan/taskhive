@@ -93,7 +93,7 @@ Rectangle {
                 z: -1
                 Text {
                     id: username
-                    text: window.userData.guest ? "Guest": window.userData.name
+                    text: window.userData.guest ? "Guest": window.userData.handle
                     font.pointSize: 22
                     color: "#fff"
                 }

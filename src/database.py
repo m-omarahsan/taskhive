@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, create_engine, ForeignKey
+from sqlalchemy import Column, Integer, String, create_engine, ForeignKey, Boolean
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.exc import IntegrityError
@@ -54,9 +54,20 @@ class UserCategories(Base):
 
 
 
+class Task(Base):
+	__tablename__ = 'task'
+	id = Column(String, primary_key=True)
+	bit_address = Column(String)
+	is_active = Column(Boolean)
+
 Base.metadata.create_all(engine)
 
 
+
+def storeTask(bitTask):
+	task = Task(id=bitTask['task_id'], bit_address=bitTask['bit_address'], is_active=True)
+	ses.add(task)
+	ses.commit()
 
 def getCategories():
 	cats = []
@@ -141,7 +152,7 @@ def getProfile():
 	except:
 		return False
 	categoriesInfo = ses.query(UserCategories).filter_by(id=profile.id).first()
-	return ses.query(Profile).all()
+	return profile
 
 
 
@@ -156,7 +167,8 @@ def createProfile(profile_DATA):
 	)
 	ses.add(new_prof)
 	for cat in profile_DATA['categories']:
-		new_usercat = UserCategories(hex_code=cat['hex_code'], profile=profile_DATA['private_key'])
+		cat_ = ses.query(Category).filter_by(name=cat['name']).first()
+		new_usercat = UserCategories(hex_code=cat_.id, profile=profile_DATA['private_key'])
 		ses.add(new_usercat)
 	ses.commit()
 

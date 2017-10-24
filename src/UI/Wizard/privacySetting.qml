@@ -164,9 +164,9 @@ Item{
                     wizardStack.push(Qt.resolvedUrl('privacySetting.qml'))
                     mainStack.push(Qt.resolvedUrl('finishedProfile.qml'))
                     var profileData = {
-                        "selectedSkills": wizard.skills,
+                        "categories": wizard.skills,
                         "handle": wizard.handle,
-                        "privacy_level": privacyExclusive.current.radioLabel
+                        "privacy_level": privacyExclusive.current.radioLabel,
                     }
                     CreateProfile.create(profileData)
                 }else {
