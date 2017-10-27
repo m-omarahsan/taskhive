@@ -3,6 +3,7 @@ import QtQuick.Window 2.2
 import QtQuick.Controls 1.2
 import QtQuick.Layouts 1.1
 Window {
+    id: taskWindow
     modality: Qt.WindowModal
     height: 800
     width: 1200
@@ -28,7 +29,7 @@ Window {
                 anchors.leftMargin: 20
                 anchors.rightMargin: 10
                 Text {
-                    text: task.task_type === 'requests' ? 'Request': 'Offer'
+                    text: task.task_type
                     anchors.verticalCenter: parent.verticalCenter
                     color: "#fff"
                     font.pixelSize: 26
@@ -45,6 +46,14 @@ Window {
                     Rectangle {
                         height: 40
                         width: 40
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                var component = Qt.createComponent("MessageWindow.qml")
+                                var message_window = component.createObject(taskWindow)
+                                message_window.show()
+                            }
+                        }
                     }
                     Rectangle {
                         height: 40

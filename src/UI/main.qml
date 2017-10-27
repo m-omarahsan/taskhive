@@ -344,6 +344,20 @@ ApplicationWindow {
                     width: parent.width
                 }
             }
+            Component {
+                id: highlightOffers
+                Rectangle {
+                    width: offersList.width; height: 60 -25
+                    color: "lightsteelblue"; radius: 5
+                    y: offersList.currentItem.y
+                    Behavior on y {
+                        SpringAnimation {
+                            spring: 3
+                            damping: 0.2
+                        }
+                    }
+                }
+            }
             ListView {
                 anchors.leftMargin: 30
                 anchors.rightMargin: 30
@@ -357,7 +371,7 @@ ApplicationWindow {
                 header: headerComponent
                 clip: true
                 headerPositioning: ListView.OverlayHeader
-                highlight: highlight
+                highlight: highlightOffers
                 highlightFollowsCurrentItem: false
                 focus: true
             }
