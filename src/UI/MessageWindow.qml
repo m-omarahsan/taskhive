@@ -82,6 +82,11 @@ Window {
             text: "Send"
             onClicked: {
                 messageWindow.messages.append({"messageText": messageText.text, "sender": "You"})
+                messageInfo = {
+                    "bit_address": taskWindow.selectedTask.task_address,
+                    "task_id": taskWindow.selectedTask.task_id
+                }
+
                 messageText.clearText()
             }
         }

@@ -629,6 +629,53 @@ class Taskhive(object):
         database.storeChannels(channel_INFO)
 
 
+    def getMessageThread(self, task_id):
+        inbox_messages = self.inbox()
+        outbox_messages = self.outbox()
+        messages = []
+        for msg in inbox_messages:
+            body = msg['message']
+            decoded_body = base64.b64decode(body)
+            try:
+                body_json = base64.b64decode(decoded_body)
+            except:
+                continue
+            try:
+                body_json = json.loads(body_json.decode('utf-8'))
+            except (TypeError, UnicodeDecodeError, ValueError, JSONDecodeError):
+                # raise APIError(1, 'JSON Data is incorrect')
+                continue
+            verified, payload_type = verify_json(body_json)
+            if verified:
+                if payload_type == 1:
+                    if verified['task_id'] == task_id: 
+                        messages.append({
+                            "payload": verified,
+                            "date_received": msg['receivedTime']})
+
+        for msg in outbox_messages:
+            body = msg['message']
+            decoded_body = base64.b64decode(body)
+            try:
+                body_json = base64.b64decode(decoded_body)
+            except:
+                continue
+            try:
+                body_json = json.loads(body_json.decode('utf-8'))
+            except (TypeError, UnicodeDecodeError, ValueError, JSONDecodeError):
+                # raise APIError(1, 'JSON Data is incorrect')
+                continue
+            verified, payload_type = verify_json(body_json)
+            if verified:
+                if payload_type == 1:
+                    if verified['task_id'] == task_id: 
+                        messages.append(verified)
+
+
+
+
+
+
     def getPostings(self):
         messages = self.inbox()
         verified_messages = {
@@ -648,13 +695,52 @@ class Taskhive(object):
                 # raise APIError(1, 'JSON Data is incorrect')
                 continue
 
-            verified = self.verify_json(body_json)
+            verified, _ = self.verify_json(body_json)
             if verified:
                 if verified['task_type'].lower() == 'request':
                     verified_messages['requests'].append(verified)
                 elif verified['task_type'].lower() == 'offer':
                     verified_messages['offers'].append(verified)
         return verified_messages
+
+
+    def send_privMessage(self, message_INFO):
+        chan_bit = message_INFO['bit_address']
+        task_id = message_INFO['task_id']
+        task_ = database.checkTask(task_id)
+        signed_json = self.create_message_json(message_INFO)
+        if task_:
+            status = self.send_message(chan_bit, task_.bit_address, 'TEST {} GMT'.format(strftime("%Y-%m-%d %H:%M:%S", gmtime())), signed_json)
+            print(status)
+        else:
+            task_address = self.generate_address(task_id)
+            status = self.send_message(chan_bit, task_address, 'TEST {} GMT'.format(strftime("%Y-%m-%d %H:%M:%S", gmtime())), signed_json)
+            database.storeTask({"task_id": task_id, "bit_address": task_address})
+            print(status)
+
+
+
+
+
+    def create_message_json(self, message_INFO):
+        private_key, public_key, address, address_encoded = self.retrieve_keys()
+        signed_payload = {}
+        try: 
+            signed_payload['to_address'] = message_INFO['to_address']
+            signed_payload['body'] = message_INFO['body']
+            signed_payload['task_id'] = message_INFO['task_id']
+        except KeyError as e:
+            print(e)
+            return "Invalid data" 
+        json_string = json.dumps(signed_payload)
+        wif_private_key = address_generator.private_to_wif(private_key, address_generator.WIF_VERSION_BYTE, address_generator.TYPE_PUB)
+        sign = bitcoin.sign_message_with_wif_privkey(wif_private_key, json_string)
+        encoded_sign = base64.b64encode(sign)
+        final_signed_json = {
+            "message_data": signed_payload,
+            "message_data_signed": encoded_sign.decode('utf-8')
+        }
+        return final_signed_json
 
 
 
@@ -723,29 +809,58 @@ class Taskhive(object):
     
     def verify_json(self, json_data):
         data = json_data
-        signature = bytes(data['task_data_signed'].encode('utf8'))
-        decoded_sign = base64.b64decode(signature)
-        temporary_json = json.loads(data['task_data'])
-        owner_public_key = temporary_json['task_owner']
-        add  = address_generator.address_from_public(bytes(owner_public_key.encode('utf8')), VERSION_BYTE) 
-        encoded_address = address_generator.base58_check_encoding(add)
-        json_string = json.dumps(data['task_data'])
-        result = bitcoin.verify_message(encoded_address, decoded_sign, bytes(data['task_data'].encode('utf8')))
-        if not result:
-            print( "Sign not valid")
-            raise APIError(1, 'Signature is not valid')
-            return result
-        if temporary_json['task_type'].lower() == 'request':
-            json_result = self.verify_request(temporary_json)
-        elif temporary_json['task_type'].lower() == 'offer':
-            json_result = self.verify_offer(temporary_json)
-        else:
+        try: 
+            _ = data['task_data_signed']
+            signature = bytes(data['task_data_signed'].encode('utf8'))
+            decoded_sign = base64.b64decode(signature)
+            temporary_json = json.loads(data['task_data'])
+            owner_public_key = temporary_json['task_owner']
+            add  = address_generator.address_from_public(bytes(owner_public_key.encode('utf8')), VERSION_BYTE) 
+            encoded_address = address_generator.base58_check_encoding(add)
+            json_string = json.dumps(data['task_data'])
+            result = bitcoin.verify_message(encoded_address, decoded_sign, bytes(data['task_data'].encode('utf8')))
+            if not result:
+                print( "Sign not valid")
+                raise APIError(1, 'Signature is not valid')
+                return result
+            if temporary_json['task_type'].lower() == 'request':
+                json_result = self.verify_request(temporary_json)
+            elif temporary_json['task_type'].lower() == 'offer':
+                json_result = self.verify_offer(temporary_json)
+            else:
+                return False
+            if not json_result:
+                return False
+            result = temporary_json
+            # print(result, temporary_json['task_type'].lower())
+            return result, 0
+        except KeyError:
+            signature = bytes(data['message_data_signed'].encode('utf8'))
+            decoded_sign = base64.b64decode(signature)
+            temporary_json = json.loads(data['message_data'])
+            public_key = temporary_json['public_key']
+            add = address_generator.address_from_public(bytes(public_key.encode('utf8')), VERSION_BYTE)
+            encoded_address = address_generator.base58_check_encoding(add)
+            json_string = json.dumps(data['message_data'])
+            result = bitcoin.verify_message(encoded_address, decoded_sign, bytes(data['message_data'].encode('utf8')))
+            if not result:
+                print( "Sign not valid")
+                raise APIError(1, 'Signature is not valid')
+                return result
+            if self.verify_message(temporary_json):
+                return temporary_json, 1
+
+
+    def verify_message(self, message_data):
+        try: 
+            _ = message_data['to_address']
+            __ = message_data['body']
+            ___ = message_data['task_id']
+            ____ = message_data['public_key']
+        except KeyError as e:
+            print(e)
             return False
-        if not json_result:
-            return False
-        result = temporary_json
-        # print(result, temporary_json['task_type'].lower())
-        return result
+        
         
 
     def verify_request(self, task_data):

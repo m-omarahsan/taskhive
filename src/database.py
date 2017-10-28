@@ -64,6 +64,13 @@ Base.metadata.create_all(engine)
 
 
 
+def checkTask(task_id):
+	task = ses.query(Task).filter_by(id=task_id).first()
+	if task:
+		return task
+	return False
+
+
 def storeTask(bitTask):
 	task = Task(id=bitTask['task_id'], bit_address=bitTask['bit_address'], is_active=True)
 	ses.add(task)

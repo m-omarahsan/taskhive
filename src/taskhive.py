@@ -78,7 +78,7 @@ class TaskThread(QThread):
 
 
 
-class TaskSendMessage(QThread):
+class TaskSendPost(QThread):
 
     taskStatus = pyqtSignal(QVariant, arguments=['status'])
 
@@ -99,6 +99,18 @@ class TaskSendMessage(QThread):
         self.taskStatus.emit({'status':'sent'})
         # return {'status':'sent'}
 
+
+class TaskSendMessage(QThread):
+
+    def __init__(self):
+        QObject.__init__(self)
+        self._localAPI = TaskhiveAPI()
+
+    @pyqtSlot(QVariant)
+    def run(self, JSON_DATA):
+        self._localAPI.create_bitmessage_api
+        task_JSON = JSON_DATA.toVariant()
+        self._localAPI.send_privMessage(task_JSON)
 
 
 class TaskProfile(QThread):
@@ -203,7 +215,7 @@ if __name__ == "__main__":
     categories = TaskhiveCategories()
     thread = TaskThread()
     createProfile = CreateProfile()
-    task = TaskSendMessage()
+    task = TaskSendPost()
     profile = TaskProfile()
     context = engine.rootContext()
     context.setContextProperty('FileInfo', file)
