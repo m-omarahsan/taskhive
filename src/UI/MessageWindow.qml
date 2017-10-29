@@ -7,6 +7,7 @@ Window {
     height: 600
     color: "#3D3D3D"
     property ListModel messages: ListModel {}
+    property var msg
     ScrollView {
         anchors.top: parent.top
         anchors.bottom: rectRow.top
@@ -82,13 +83,24 @@ Window {
             text: "Send"
             onClicked: {
                 messageWindow.messages.append({"messageText": messageText.text, "sender": "You"})
-                messageInfo = {
-                    "bit_address": taskWindow.selectedTask.task_address,
-                    "task_id": taskWindow.selectedTask.task_id
+                var messageInfo = {
+                    "bit_address": taskWindow.task.task_address,
+                    "task_id": taskWindow.task.task_id
                 }
 
                 messageText.clearText()
+                Message.sendMessage(messageInfo)
             }
         }
+    }
+
+    Connections {
+        target: Message
+        onMsgThread: {
+            messageWindow.messages = msg
+        }
+    }
+    Component.onCompleted:  {
+        Message.getMessageThread(window.selectedTask.task_id)
     }
 }

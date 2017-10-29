@@ -65,6 +65,8 @@ Base.metadata.create_all(engine)
 
 
 def checkTask(task_id):
+	Session = sessionmaker(bind=engine)
+	ses = Session()
 	task = ses.query(Task).filter_by(id=task_id).first()
 	if task:
 		return task
@@ -72,6 +74,8 @@ def checkTask(task_id):
 
 
 def storeTask(bitTask):
+	Session = sessionmaker(bind=engine)
+	ses = Session()
 	task = Task(id=bitTask['task_id'], bit_address=bitTask['bit_address'], is_active=True)
 	ses.add(task)
 	ses.commit()

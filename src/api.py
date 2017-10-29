@@ -645,7 +645,7 @@ class Taskhive(object):
             except (TypeError, UnicodeDecodeError, ValueError, JSONDecodeError):
                 # raise APIError(1, 'JSON Data is incorrect')
                 continue
-            verified, payload_type = verify_json(body_json)
+            verified, payload_type = self.verify_json(body_json)
             if verified:
                 if payload_type == 1:
                     if verified['task_id'] == task_id: 
@@ -665,11 +665,12 @@ class Taskhive(object):
             except (TypeError, UnicodeDecodeError, ValueError, JSONDecodeError):
                 # raise APIError(1, 'JSON Data is incorrect')
                 continue
-            verified, payload_type = verify_json(body_json)
+            verified, payload_type = self.verify_json(body_json)
             if verified:
                 if payload_type == 1:
                     if verified['task_id'] == task_id: 
                         messages.append(verified)
+        return messages
 
 
 
@@ -709,12 +710,15 @@ class Taskhive(object):
         task_id = message_INFO['task_id']
         task_ = database.checkTask(task_id)
         signed_json = self.create_message_json(message_INFO)
+        encoded_json = base64.b64encode(bytes(json.dumps(signed_json).encode('utf8')))
         if task_:
-            status = self.send_message(chan_bit, task_.bit_address, 'TEST {} GMT'.format(strftime("%Y-%m-%d %H:%M:%S", gmtime())), signed_json)
+            print(chan_bit, task_.bit_address)
+            status = self.send_message(chan_bit, task_.bit_address, 'TEST {} GMT'.format(strftime("%Y-%m-%d %H:%M:%S", gmtime())), encoded_json)
             print(status)
         else:
-            task_address = self.generate_address(task_id)
-            status = self.send_message(chan_bit, task_address, 'TEST {} GMT'.format(strftime("%Y-%m-%d %H:%M:%S", gmtime())), signed_json)
+            task_address = self.generate_address(label=task_id)
+            print(chan_bit, task_address)
+            status = self.send_message(chan_bit, task_address, 'TEST {} GMT'.format(strftime("%Y-%m-%d %H:%M:%S", gmtime())), encoded_json)
             database.storeTask({"task_id": task_id, "bit_address": task_address})
             print(status)
 
@@ -828,9 +832,9 @@ class Taskhive(object):
             elif temporary_json['task_type'].lower() == 'offer':
                 json_result = self.verify_offer(temporary_json)
             else:
-                return False
+                return False, 0
             if not json_result:
-                return False
+                return False, 0
             result = temporary_json
             # print(result, temporary_json['task_type'].lower())
             return result, 0
@@ -846,7 +850,7 @@ class Taskhive(object):
             if not result:
                 print( "Sign not valid")
                 raise APIError(1, 'Signature is not valid')
-                return result
+                return result, 1
             if self.verify_message(temporary_json):
                 return temporary_json, 1
 

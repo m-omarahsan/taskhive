@@ -100,17 +100,60 @@ class TaskSendPost(QThread):
         # return {'status':'sent'}
 
 
-class TaskSendMessage(QThread):
+class Message(QObject):
+
+    msgThread = pyqtSignal(QVariant, arguments=['msg'])
 
     def __init__(self):
         QObject.__init__(self)
-        self._localAPI = TaskhiveAPI()
+        self._msgThread = None
+        self._sendThread = None
+
+    @pyqtSlot(str)
+    def getMessageThread(self, task_id):
+        self._msgThread = MessageThread(task_id)
+        self._msgThread.msg.connect(self.msgThread)
+        self._msgThread.start()
+
 
     @pyqtSlot(QVariant)
-    def run(self, JSON_DATA):
-        self._localAPI.create_bitmessage_api
-        task_JSON = JSON_DATA.toVariant()
+    def sendMessage(self, JSON_DATA):
+        self._sendThread = SendMessageThread(JSON_DATA)
+        self._sendThread.start()
+
+
+class MessageThread(QThread):
+
+    msg = pyqtSignal(QVariant, arguments=['msg'])
+
+    def __init__(self, task_id):
+        QObject.__init__(self)
+        self._localAPI = TaskhiveAPI()
+        self.task_id = task_id
+
+    @pyqtSlot()
+    def run(self):
+        self._localAPI.create_bitmessage_api()
+        msg_p = self._localAPI.getMessageThread(self.task_id)
+        self.msg.emit(msg_p)
+
+
+
+class SendMessageThread(QThread):
+
+
+    def __init__(self, task_JSON):
+        QObject.__init__(self)
+        self._localAPI = TaskhiveAPI()
+        self._JSON = task_JSON
+
+
+    @pyqtSlot()
+    def run(self):
+        self._localAPI.create_bitmessage_api()
+        task_JSON = self._JSON.toVariant()
         self._localAPI.send_privMessage(task_JSON)
+
 
 
 class TaskProfile(QThread):
@@ -216,10 +259,14 @@ if __name__ == "__main__":
     thread = TaskThread()
     createProfile = CreateProfile()
     task = TaskSendPost()
+    message = Message()
     profile = TaskProfile()
+    sendMessage = MessageThread('')
     context = engine.rootContext()
     context.setContextProperty('FileInfo', file)
     context.setContextProperty('TaskhiveCategories', categories)
+    context.setContextProperty('Message', message)
+    context.setContextProperty('MessageThread', sendMessage)
     context.setContextProperty('TaskThread', thread)
     context.setContextProperty('Task', task)
     context.setContextProperty('CreateProfile', createProfile)
