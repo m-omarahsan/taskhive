@@ -6,7 +6,7 @@ Window {
     width: 400
     height: 600
     color: "#3D3D3D"
-    property ListModel messages: ListModel {}
+    property variant messages: []
     property var msg
     ScrollView {
         anchors.top: parent.top
@@ -33,7 +33,7 @@ Window {
             readonly property bool sentByMe: modelData.sender !== "You"
             spacing: 10
             Text {
-                text: sender
+                text: modelData.sender
                 font.pixelSize: 18
                 color: "#fff"
                 anchors.left: sentByMe ? parent.left: undefined
@@ -51,7 +51,7 @@ Window {
                 anchors.rightMargin: 20
                 anchors.leftMargin: 20
                 Text {
-                    text: messageText
+                    text: modelData.messageText
                     anchors.right: parent.right
                     anchors.rightMargin: 10
                     anchors.leftMargin: 10
@@ -82,10 +82,13 @@ Window {
             width: 40
             text: "Send"
             onClicked: {
-                messageWindow.messages.append({"messageText": messageText.text, "sender": "You"})
+                messageWindow.messages.push({"messageText": messageText.text, "sender": window.userData.public_key })
+                print(messageWindow.messages)
                 var messageInfo = {
                     "bit_address": taskWindow.task.task_address,
-                    "task_id": taskWindow.task.task_id
+                    "task_id": taskWindow.task.task_id,
+                    "body": messageText.text,
+                    "public_key": window.userData.public_key
                 }
 
                 messageText.clearText()
@@ -98,6 +101,7 @@ Window {
         target: Message
         onMsgThread: {
             messageWindow.messages = msg
+            print(messageWindow.messages)
         }
     }
     Component.onCompleted:  {

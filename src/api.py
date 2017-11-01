@@ -22,7 +22,7 @@ import xml
 import psutil
 import xmlrpc.client
 import address_generator
-import database
+from database import DatabaseConnection
 from address_generator import VERSION_BYTE
 from change import CRYPTO_COINS
 from change import CURRENCIES
@@ -84,6 +84,7 @@ class Taskhive(object):
         self.api = ''
         self.run_bm = ''
         self.bitmessage_dict = {}
+        self.db = DatabaseConnection()
 
     def find_running_bitmessage_port(self):
         self.bitmessage_dict = {}
@@ -319,7 +320,7 @@ class Taskhive(object):
         userData = {
             "guest": True
         }
-        profile = database.getProfile()
+        profile = self.db.getProfile()
         if not profile:
             return userData
         else:
@@ -329,11 +330,12 @@ class Taskhive(object):
                 userData['guest'] = False
                 userData['privacy_level'] = profile.privacy_level
                 userData['handle'] = profile.handle
+                userData['public_key'] = profile.public_key
         return userData
 
 
     def createProfile(self, profile_DATA):
-        profile = database.getProfile()
+        profile = self.db.getProfile()
         if not profile:
             private_key, public_key, address, address_encoded = self.generate_and_store_keys()
             new_payload = {
@@ -345,7 +347,7 @@ class Taskhive(object):
             new_payload['handle'] = profile_DATA['handle']
             new_payload['privacy_level'] = profile_DATA['privacy_level']
             new_payload['categories'] = profile_DATA['categories']
-            database.createProfile(new_payload)
+            self.db.createProfile(new_payload)
 
 
     def retrieve_keys(self):
@@ -603,8 +605,8 @@ class Taskhive(object):
             {'hex':'07', 'name':'Administrative / Business / Legal'},
             {'hex':'08', 'name':'Misc'}]
         channel_INFO = []
-        channel_types = database.createChannelTypes()
-        database.generateCategories()
+        channel_types = self.db.createChannelTypes()
+        self.db.generateCategories()
         for channel in channels:
             for chan_type in channel_types:
                 if chan_type.name.lower() == 'Offers'.lower():
@@ -626,7 +628,7 @@ class Taskhive(object):
                     }
                     channel_INFO.append(chan)
         print(channel_INFO)
-        database.storeChannels(channel_INFO)
+        self.db.storeChannels(channel_INFO)
 
 
     def getMessageThread(self, task_id):
@@ -640,8 +642,11 @@ class Taskhive(object):
                 body_json = base64.b64decode(decoded_body)
             except:
                 continue
+            
             try:
                 body_json = json.loads(body_json.decode('utf-8'))
+                if isinstance(body_json, str):
+                    continue
             except (TypeError, UnicodeDecodeError, ValueError, JSONDecodeError):
                 # raise APIError(1, 'JSON Data is incorrect')
                 continue
@@ -653,6 +658,7 @@ class Taskhive(object):
                             "payload": verified,
                             "date_received": msg['receivedTime']})
 
+
         for msg in outbox_messages:
             body = msg['message']
             decoded_body = base64.b64decode(body)
@@ -662,14 +668,18 @@ class Taskhive(object):
                 continue
             try:
                 body_json = json.loads(body_json.decode('utf-8'))
+                if isinstance(body_json, str):
+                    continue
             except (TypeError, UnicodeDecodeError, ValueError, JSONDecodeError):
-                # raise APIError(1, 'JSON Data is incorrect')
                 continue
+
             verified, payload_type = self.verify_json(body_json)
             if verified:
                 if payload_type == 1:
                     if verified['task_id'] == task_id: 
-                        messages.append(verified)
+                        messages.append({
+                            "payload": verified,
+                            "date_received": msg['receivedTime']})
         return messages
 
 
@@ -708,7 +718,7 @@ class Taskhive(object):
     def send_privMessage(self, message_INFO):
         chan_bit = message_INFO['bit_address']
         task_id = message_INFO['task_id']
-        task_ = database.checkTask(task_id)
+        task_ = self.db.checkTask(task_id)
         signed_json = self.create_message_json(message_INFO)
         encoded_json = base64.b64encode(bytes(json.dumps(signed_json).encode('utf8')))
         if task_:
@@ -719,7 +729,7 @@ class Taskhive(object):
             task_address = self.generate_address(label=task_id)
             print(chan_bit, task_address)
             status = self.send_message(chan_bit, task_address, 'TEST {} GMT'.format(strftime("%Y-%m-%d %H:%M:%S", gmtime())), encoded_json)
-            database.storeTask({"task_id": task_id, "bit_address": task_address})
+            self.db.storeTask({"task_id": task_id, "bit_address": task_address})
             print(status)
 
 
@@ -730,9 +740,10 @@ class Taskhive(object):
         private_key, public_key, address, address_encoded = self.retrieve_keys()
         signed_payload = {}
         try: 
-            signed_payload['to_address'] = message_INFO['to_address']
+            signed_payload['bit_address'] = message_INFO['bit_address']
             signed_payload['body'] = message_INFO['body']
             signed_payload['task_id'] = message_INFO['task_id']
+            signed_payload['public_key'] = message_INFO['public_key']
         except KeyError as e:
             print(e)
             return "Invalid data" 
@@ -741,7 +752,7 @@ class Taskhive(object):
         sign = bitcoin.sign_message_with_wif_privkey(wif_private_key, json_string)
         encoded_sign = base64.b64encode(sign)
         final_signed_json = {
-            "message_data": signed_payload,
+            "message_data": json_string,
             "message_data_signed": encoded_sign.decode('utf-8')
         }
         return final_signed_json
@@ -758,7 +769,7 @@ class Taskhive(object):
             prelim, signed_json = self.create_request_json(task_INFO)
         elif task_type.lower() == 'request':
             prelim, signed_json = self.create_request_json(task_INFO)
-        channels = database.getChannelByCategory(categories)
+        channels = self.db.getChannelByCategory(categories)
 
         for chan in channels:
             print("Sending messages...")
@@ -803,7 +814,7 @@ class Taskhive(object):
         wif_private_key = address_generator.private_to_wif(private_key, address_generator.WIF_VERSION_BYTE, address_generator.TYPE_PUB)
         sign = bitcoin.sign_message_with_wif_privkey(wif_private_key, json_string)
         encoded_sign = base64.b64encode(sign)
-        database.storeTask({
+        self.db.storeTask({
             "task_id": task_id,
             "bit_address": task_BM_address
         })
@@ -842,6 +853,9 @@ class Taskhive(object):
             signature = bytes(data['message_data_signed'].encode('utf8'))
             decoded_sign = base64.b64decode(signature)
             temporary_json = json.loads(data['message_data'])
+            if not self.verify_message(temporary_json):
+                print(temporary_json)
+                return False, 1
             public_key = temporary_json['public_key']
             add = address_generator.address_from_public(bytes(public_key.encode('utf8')), VERSION_BYTE)
             encoded_address = address_generator.base58_check_encoding(add)
@@ -857,7 +871,7 @@ class Taskhive(object):
 
     def verify_message(self, message_data):
         try: 
-            _ = message_data['to_address']
+            _ = message_data['bit_address']
             __ = message_data['body']
             ___ = message_data['task_id']
             ____ = message_data['public_key']
