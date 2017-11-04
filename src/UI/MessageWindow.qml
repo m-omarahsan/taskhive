@@ -6,7 +6,7 @@ Window {
     width: 400
     height: 600
     color: "#3D3D3D"
-    property variant messages: []
+    property ListModel messages: ListModel {}
     property var msg
     ScrollView {
         anchors.top: parent.top
@@ -30,10 +30,10 @@ Window {
         Column{
             anchors.right: parent.right
             anchors.left: parent.left
-            readonly property bool sentByMe: modelData.sender !== "You"
+            readonly property bool sentByMe: modelData.sender !== window.userData.public_key
             spacing: 10
             Text {
-                text: modelData.sender
+                text: sentByMe ? "You": sender
                 font.pixelSize: 18
                 color: "#fff"
                 anchors.left: sentByMe ? parent.left: undefined
@@ -51,7 +51,7 @@ Window {
                 anchors.rightMargin: 20
                 anchors.leftMargin: 20
                 Text {
-                    text: modelData.messageText
+                    text: body
                     anchors.right: parent.right
                     anchors.rightMargin: 10
                     anchors.leftMargin: 10
@@ -100,8 +100,11 @@ Window {
     Connections {
         target: Message
         onMsgThread: {
-            messageWindow.messages = msg
-            print(messageWindow.messages)
+            print("TEST: "+ msg.length)
+            for(var i = 0; i<msg.length; i++){
+                messageWindow.messages.append(msg[i].payload)
+                print(msg[i])
+            }
         }
     }
     Component.onCompleted:  {

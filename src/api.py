@@ -652,8 +652,10 @@ class Taskhive(object):
                 continue
             verified, payload_type = self.verify_json(body_json)
             if verified:
+                print(verified, payload_type)
                 if payload_type == 1:
-                    if verified['task_id'] == task_id: 
+                    if verified['task_id'] == task_id:
+                        print(verified['task_id']) 
                         messages.append({
                             "payload": verified,
                             "date_received": msg['receivedTime']})
@@ -675,11 +677,11 @@ class Taskhive(object):
 
             verified, payload_type = self.verify_json(body_json)
             if verified:
+                print(verified, payload_type)
                 if payload_type == 1:
-                    if verified['task_id'] == task_id: 
+                    if verified['task_id'] == task_id:
                         messages.append({
-                            "payload": verified,
-                            "date_received": msg['receivedTime']})
+                            "payload": verified})
         return messages
 
 
@@ -732,6 +734,10 @@ class Taskhive(object):
             self.db.storeTask({"task_id": task_id, "bit_address": task_address})
             print(status)
 
+    def getMessages(self, task_id):
+        if task_id:
+            for task in task_id:
+                msg = self.getMessageThread(task)
 
 
 
@@ -865,8 +871,7 @@ class Taskhive(object):
                 print( "Sign not valid")
                 raise APIError(1, 'Signature is not valid')
                 return result, 1
-            if self.verify_message(temporary_json):
-                return temporary_json, 1
+            return temporary_json, 1
 
 
     def verify_message(self, message_data):
@@ -878,6 +883,7 @@ class Taskhive(object):
         except KeyError as e:
             print(e)
             return False
+        return True
         
         
 

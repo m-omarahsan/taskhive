@@ -135,6 +135,7 @@ class MessageThread(QThread):
     def run(self):
         self._localAPI.create_bitmessage_api()
         msg_p = self._localAPI.getMessageThread(self.task_id)
+        print(msg_p)
         self.msg.emit(msg_p)
 
 

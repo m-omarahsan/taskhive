@@ -49,9 +49,16 @@ Window {
                         MouseArea {
                             anchors.fill: parent
                             onClicked: {
-                                var component = Qt.createComponent("MessageWindow.qml")
-                                var message_window = component.createObject(taskWindow)
-                                message_window.show()
+                                if(taskWindow.task.task_owner === window.userData.public_key){
+                                    var inboxComponent = Qt.createComponent("InboxWindow.qml")
+                                    var inbox_window = inboxComponent.createObject(taskWindow)
+                                    inbox_window.show()
+                                }
+                                else {
+                                    var component = Qt.createComponent("MessageWindow.qml")
+                                    var message_window = component.createObject(taskWindow)
+                                    message_window.show()
+                                }
                             }
                         }
                     }
