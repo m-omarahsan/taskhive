@@ -8,7 +8,7 @@ from PyQt5.QtCore import Qt, QObject, QModelIndex, QUrl, pyqtSignal, QFileInfo, 
 from PyQt5.QtQml import qmlRegisterType, QQmlEngine, QQmlComponent, QQmlApplicationEngine
 from PyQt5.QtQuick import QQuickView
 from api import Taskhive as TaskhiveAPI
-import database as dtb
+from database import DatabaseConnection
 import atexit
 import time
 import json
@@ -108,10 +108,11 @@ class Message(QObject):
         QObject.__init__(self)
         self._msgThread = None
         self._sendThread = None
+        self._inboxThread = None
 
     @pyqtSlot(str)
-    def getMessageThread(self, task_id):
-        self._msgThread = MessageThread(task_id)
+    def getMessageThread(self, task_id, from_add=None):
+        self._msgThread = MessageThread(task_id, from_add)
         self._msgThread.msg.connect(self.msgThread)
         self._msgThread.start()
 
@@ -122,19 +123,38 @@ class Message(QObject):
         self._sendThread.start()
 
 
-class MessageThread(QThread):
+    @pyqtSlot(QVariant)
+    def getMessageInbox(self, task_id):
+        self._inboxThread = InboxThread(task_id)
 
-    msg = pyqtSignal(QVariant, arguments=['msg'])
+
+class InboxThread(QThread):
+
+    msgInbox = pyqtSignal(QVariant, arguments=['task_id'])
 
     def __init__(self, task_id):
         QObject.__init__(self)
         self._localAPI = TaskhiveAPI()
+        self,task_id = task_id
+
+    #def run(self):
+     #   self._localAPI.create_bitmessage_api()
+      #  messages = self._localAPI.
+
+class MessageThread(QThread):
+
+    msg = pyqtSignal(QVariant, arguments=['msg'])
+
+    def __init__(self, task_id, from_add=None):
+        QObject.__init__(self)
+        self._localAPI = TaskhiveAPI()
         self.task_id = task_id
+        self.from_add = from_add
 
     @pyqtSlot()
     def run(self):
         self._localAPI.create_bitmessage_api()
-        msg_p = self._localAPI.getMessageThread(self.task_id)
+        msg_p = self._localAPI.getMessageThread(self.task_id, from_add=self.from_add)
         print(msg_p)
         self.msg.emit(msg_p)
 
@@ -194,10 +214,11 @@ class TaskhiveAddress(QObject):
 class TaskhiveCategories(QObject):
     def __init__(self):
             QObject.__init__(self)
+            self.db = DatabaseConnection()
 
     @pyqtSlot(result=QVariant)
     def getCategories(self):
-        categories = dtb.getCategories()
+        categories = self.db.getCategories()
         return categories
 
 class Taskhive(QApplication):

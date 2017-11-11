@@ -12,7 +12,7 @@ Window {
     property ListModel messages: ListModel {}
     ScrollView {
         anchors.top: parent.top
-        anchors.bottom: rectRow.top
+        anchors.bottom: parent.bottom.top
         anchors.right: parent.right
         anchors.left: parent.left
         frameVisible: false
@@ -21,11 +21,30 @@ Window {
         ListView {
             anchors.fill: parent
             anchors.topMargin: 10
-            delegate: message
+            delegate: inboxList
             spacing: 10
+            header: headerInbox
             model: inboxWindow.messages
         }
 
+    }
+    Component {
+        id: headerInbox
+        Rectangle {
+            anchors.right: parent.right
+            anchors.left: parent.left
+            height: 50
+            color: "transparent"
+            Row {
+                anchors.fill: parent
+                Text {
+                    font.pixelSize: 18
+                    wrapMode: Text.WordWrap
+                    color: "#FFF"
+                    text: "TEST"
+                }
+            }
+        }
     }
     Component {
         id: inboxList
@@ -44,7 +63,15 @@ Window {
             }
         }
     }
+    Connections {
+        target: Message
+        onMsgThread: {
+            for(var i=0;i<msg.length;i++){
+                inboxWindow.messages.append(msg[i])
+            }
+        }
+    }
     Component.onCompleted: {
-        Message.getInbox()
+        Message.getMessageThread(window.selectedTask.task_id)
     }
 }

@@ -71,7 +71,7 @@ Window {
         anchors.leftMargin: 20
         anchors.rightMargin: 20
         spacing: 10
-        TextBox {
+        TextArea {
             id: messageText
             height: 150
             width: rectRow.width - 50
@@ -101,13 +101,16 @@ Window {
         target: Message
         onMsgThread: {
             print("TEST: "+ msg.length)
-            for(var i = 0; i<msg.length; i++){
-                messageWindow.messages.append(msg[i].payload)
-                print(msg[i])
+            if(msg.length !== 0){
+                var mes = msg[0].messageThread
+                for(var i = 0; i<mes.length; i++){
+                    messageWindow.messages.append(mes[i].payload)
+                    print(msg[i])
+                }
             }
         }
     }
     Component.onCompleted:  {
-        Message.getMessageThread(window.selectedTask.task_id)
+        Message.getMessageThread(window.selectedTask.task_id, window.selectedTask.bit_address)
     }
 }

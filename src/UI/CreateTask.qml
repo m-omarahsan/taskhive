@@ -65,7 +65,7 @@ Window {
             model: ["Request", "Offer"]
         }
     }
-    Column {
+    Rectangle {
         id: contentInfo
         anchors.left: parent.left
         anchors.right: parent.right
@@ -73,210 +73,247 @@ Window {
         anchors.leftMargin: 20
         anchors.top: windowTitleCreate.bottom
         anchors.topMargin: 10
-        spacing: 10
-        Text {
-            text: "Task Title"
-            font.pixelSize: 18
-            color: "#fff"
+        Column{
+            id: titleColumn
+            anchors.left: parent.left
+            anchors.right: parent.right
+            spacing: 10
+            anchors.top: parent.top
+            Text {
+                text: "Task Title"
+                font.pixelSize: 18
+                color: "#fff"
+            }
+            LineEdit {
+                id: task_title
+                height: 30
+                fontSize: 16
+                width: parent.width
+            }
         }
-        LineEdit {
-            id: task_title
-            height: 30
-            fontSize: 16
-            width: parent.width
-        }
         Text {
+            id: text1
             text: "Task Description"
             font.pixelSize: 18
             color: "#fff"
+            anchors.top: titleColumn.bottom
         }
-        TextBox {
+        TextArea {
             id: task_body
-            height: 150
-            width: parent.width
-        }
-        Row{
-            id: row
-            width: parent.width
-            spacing: 10
-            Text {
-                text: "Task Currency:"
-                anchors.verticalCenter: parent.verticalCenter
-                color: "#fff"
-                font.pixelSize: 18
-                verticalAlignment: Text.AlignVCenter
-            }
-            Combo {
-                id: task_currency
-                model: ["BTC", "USD"]
-                width: 100
-                height: 25
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-            Text {
-                text: "Task Cost:"
-                anchors.verticalCenter: parent.verticalCenter
-                color: "#fff"
-                font.pixelSize: 18
-                verticalAlignment: Text.AlignVCenter
-            }
-            LineEdit {
-                id: task_cost
-                height: 30
-                width: 100
-                validator: DoubleValidator {}
-            }
-            Text {
-                text: "Category"
-                anchors.verticalCenter: parent.verticalCenter
-                color: "#fff"
-                font.pixelSize: 18
-                verticalAlignment: Text.AlignVCenter
-            }
-            ComboBox {
-                id: task_category
-                model: categories
-                width: 100
-                height: 25
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-        }
-        Text {
-            text: "Payment Methods"
-            color: "#fff"
-            font.pixelSize: 18
-            verticalAlignment: Text.AlignVCenter
-        }
-        GridView {
-            model: createWindow.selectedMethods
-            anchors.right: parent.right
+            anchors.top: text1.bottom
+            anchors.topMargin: 0
             anchors.left: parent.left
-            height: 100
-            cellHeight: 35
-            cellWidth: 75
-            delegate: Rectangle{
-                height: 30
-                width: 70
-                color: "transparent"
-                    Text {
-                    text: method
-                    color: "#fff"
-                    font.pixelSize: 16
-                }
-            }
-            footer: Row {
-                height: 30
-                width: 150
+            anchors.leftMargin: 0
+            anchors.right: parent.right
+            anchors.rightMargin: 0
+        }
+        Rectangle {
+            id: column
+            height: 400
+            anchors.left: parent.left
+            anchors.right: parent.right
+            color: "transparent"
+            anchors.top: task_body.bottom
+            anchors.topMargin: 10
+            Row{
+                id: row
+                width: parent.width
                 spacing: 10
-                ComboBox{
-                    id: paymentMethods
+                anchors.top: parent.top
+                Text {
+                    text: "Task Currency:"
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: "#fff"
+                    font.pixelSize: 18
+                    verticalAlignment: Text.AlignVCenter
+                }
+                Combo {
+                    id: task_currency
+                    model: ["BTC", "USD"]
+                    width: 100
+                    height: 25
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                Text {
+                    text: "Task Cost:"
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: "#fff"
+                    font.pixelSize: 18
+                    verticalAlignment: Text.AlignVCenter
+                }
+                LineEdit {
+                    id: task_cost
                     height: 30
                     width: 100
-                    model: ["BTC", "DOGE"]
-                    visible: false
+                    validator: DoubleValidator {}
                 }
-
-                Button {
-                    width: 40
-                    height: parent.height
-                    text: "+"
-                    onClicked: {
-                        if(paymentMethods.visible){
-                            createWindow.selectedMethods.append({"method":paymentMethods.currentText})
-                        }
-                        else {
-                            paymentMethods.visible = true
-                        }
-                    }
+                Text {
+                    text: "Category"
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: "#fff"
+                    font.pixelSize: 18
+                    verticalAlignment: Text.AlignVCenter
+                }
+                ComboBox {
+                    id: task_category
+                    model: categories
+                    width: 100
+                    height: 25
+                    anchors.verticalCenter: parent.verticalCenter
                 }
 
             }
-        }
-        Text {
-            text: "Deadline"
-            color: "#fff"
-            font.pixelSize: 18
-        }
-        Datepicker {
-            id: task_deadline
-            height: 30
-            width: 150
-            z: 999
-        }
-        Row{
-            id: row1
-            spacing: 5
             Text {
-                text: "Insert Keywords"
+                id: methodText
+                text: "Payment Methods"
                 color: "#fff"
                 font.pixelSize: 18
-                anchors.verticalCenter: parent.verticalCenter
+                verticalAlignment: Text.AlignVCenter
+                anchors.top: row.bottom
+                anchors.topMargin: 10
+
             }
-            LineEdit {
-                id: keyword
-                height: 30
-                anchors.verticalCenter: parent.verticalCenter
-                width: 150
-                onAccepted: {
-                    createWindow.keywordList.append({"word":keyword.text})
-                    keyword.text = ''
-                }
-            }
-        }
-        Flow {
-            id: keywords
-            height: 80
-            layoutDirection: Qt.LeftToRight
-            flow: GridLayout.LeftToRight
-            anchors.left: parent.left
-            anchors.right: parent.right
-            spacing: 10
-            Repeater {
-                model: createWindow.keywordList
-                delegate: keywordItem
-            }
-        }
-        Component {
-            id: keywordItem
-            Item {
-                width: childrenRect.width
-                height: 30
-                Text {
-                    id: fakeText
-                    text: modelData
-                    font.pixelSize: 18
-                    visible: false
-                }
-                Rectangle {
-                    width: fakeText.width + 30
+            GridView {
+                id: gridMethod
+                model: createWindow.selectedMethods
+                anchors.right: parent.right
+                anchors.left: parent.left
+                anchors.top: methodText.bottom
+                height: 100
+                cellHeight: 35
+                cellWidth: 75
+                delegate: Rectangle{
                     height: 30
-                    Text {
-                        text: "X"
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        anchors.rightMargin: 2
-                        anchors.topMargin: 2
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                createWindow.keywordList.remove(index)
+                    width: 70
+                    color: "transparent"
+                        Text {
+                        text: method
+                        color: "#fff"
+                        font.pixelSize: 16
+                    }
+                }
+                footer: Row {
+                    height: 30
+                    width: 150
+                    spacing: 10
+                    ComboBox{
+                        id: paymentMethods
+                        height: 30
+                        width: 100
+                        model: ["BTC", "DOGE"]
+                        visible: false
+                    }
+
+                    Button {
+                        width: 40
+                        height: parent.height
+                        text: "+"
+                        onClicked: {
+                            if(paymentMethods.visible){
+                                createWindow.selectedMethods.append({"method":paymentMethods.currentText})
+                            }
+                            else {
+                                paymentMethods.visible = true
                             }
                         }
                     }
+
+                }
+            }
+            Text {
+                id: deadlineText
+                text: "Deadline"
+                color: "#fff"
+                font.pixelSize: 18
+                anchors.top: gridMethod.bottom
+                anchors.topMargin: 10
+            }
+            Datepicker {
+                id: task_deadline
+                anchors.top: deadlineText.bottom
+                height: 30
+                width: 150
+                z: 999
+            }
+            Row{
+                id: row1
+                spacing: 5
+                anchors.top: task_deadline.bottom
+                anchors.topMargin: 10
+                Text {
+                    text: "Insert Keywords"
+                    color: "#fff"
+                    font.pixelSize: 18
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+                LineEdit {
+                    id: keyword
+                    height: 30
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 150
+                    onAccepted: {
+                        createWindow.keywordList.append({"word":keyword.text})
+                        keyword.text = ''
+                    }
+                }
+            }
+            Flow {
+                id: keywords
+                height: 80
+                layoutDirection: Qt.LeftToRight
+                flow: GridLayout.LeftToRight
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: row1.bottom
+                anchors.topMargin: 10
+                spacing: 10
+                Repeater {
+                    model: createWindow.keywordList
+                    delegate: keywordItem
+                }
+            }
+            Component {
+                id: keywordItem
+                Item {
+                    width: childrenRect.width
+                    height: 30
                     Text {
+                        id: fakeText
                         text: modelData
                         font.pixelSize: 18
-                        anchors.centerIn: parent
+                        visible: false
                     }
-               }
+                    Rectangle {
+                        width: fakeText.width + 30
+                        height: 30
+                        Text {
+                            text: "X"
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.rightMargin: 2
+                            anchors.topMargin: 2
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    createWindow.keywordList.remove(index)
+                                }
+                            }
+                        }
+                        Text {
+                            text: modelData
+                            font.pixelSize: 18
+                            anchors.centerIn: parent
+                        }
+                   }
+                }
             }
         }
 
     }
     Row {
+        id: buttonsRow
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 15
         anchors.right: parent.right
@@ -286,6 +323,8 @@ Window {
             id: submitB
             text: "Submit"
             onClicked:  {
+                print(task_body.length)
+                print(task_title.length)
                 if(task_cost.acceptableInput && (task_title.length > 0) && (task_body.length > 0)){
                     createWindow.sendDataToThread()
                 }
@@ -328,6 +367,7 @@ Window {
     }
     Component.onCompleted: {
         var cats = TaskhiveCategories.getCategories();
+        print(cats)
         var categoriesNames = [];
         for(var i = 0; i<cats.length;i++){
             categoriesNames.push(cats[i].name);

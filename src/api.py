@@ -631,12 +631,15 @@ class Taskhive(object):
         self.db.storeChannels(channel_INFO)
 
 
-    def getMessageThread(self, task_id):
+    def getMessageThread(self, task_id, from_add=None):
         inbox_messages = self.inbox()
         outbox_messages = self.outbox()
         messages = []
         for msg in inbox_messages:
             body = msg['message']
+            from_msg = msg['fromAddress']
+            if from_add is not None and from_msg != from_add:
+                continue
             decoded_body = base64.b64decode(body)
             try:
                 body_json = base64.b64decode(decoded_body)
@@ -652,17 +655,27 @@ class Taskhive(object):
                 continue
             verified, payload_type = self.verify_json(body_json)
             if verified:
-                print(verified, payload_type)
                 if payload_type == 1:
                     if verified['task_id'] == task_id:
-                        print(verified['task_id']) 
-                        messages.append({
-                            "payload": verified,
-                            "date_received": msg['receivedTime']})
+                        for mes in messages:
+                            if mes['fromAddress'] == from_msg:
+                                mes['messageThread'].append({
+                                    "payload": verified,
+                                    "date_received": msg['receivedTime']
+                                })
+                        if not messages:
+                            messages.append({
+                                "messageThread":[{
+                                    "payload": verified,
+                                    "date_received": msg['receivedTime']
+                                }],
+                                "fromAddress": from_msg
+                            })
 
 
         for msg in outbox_messages:
             body = msg['message']
+            from_msg = msg['fromAddress']
             decoded_body = base64.b64decode(body)
             try:
                 body_json = base64.b64decode(decoded_body)
@@ -677,13 +690,25 @@ class Taskhive(object):
 
             verified, payload_type = self.verify_json(body_json)
             if verified:
-                print(verified, payload_type)
                 if payload_type == 1:
                     if verified['task_id'] == task_id:
-                        messages.append({
-                            "payload": verified})
+                        for mes in messages:
+                            if mes['fromAddress'] == from_msg:
+                                print(msg)
+                                mes['messageThread'].append({
+                                    "payload": verified,
+                                    "date_received": msg['lastActionTime']
+                                })
+                        if not messages:
+                            print(msg)
+                            messages.append({
+                                "messageThread":[{
+                                    "payload": verified,
+                                    "date_received": msg['lastActionTime']
+                                }],
+                                "fromAddress": from_msg
+                            })
         return messages
-
 
 
 
