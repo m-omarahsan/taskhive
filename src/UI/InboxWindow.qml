@@ -13,6 +13,8 @@ Window {
     ScrollView {
         anchors.top: parent.top
         anchors.bottom: parent.bottom.top
+        anchors.leftMargin: 20
+        anchors.rightMargin: 20
         anchors.right: parent.right
         anchors.left: parent.left
         frameVisible: false
@@ -37,11 +39,27 @@ Window {
             color: "transparent"
             Row {
                 anchors.fill: parent
+                spacing: 10
                 Text {
                     font.pixelSize: 18
                     wrapMode: Text.WordWrap
                     color: "#FFF"
-                    text: "TEST"
+                    text: "Sender"
+                }
+                Item {
+                    width: 2
+                    height: parent.height  - 25
+                }
+                Rectangle {
+                    width: 2
+                    height: parent.height  - 25
+                    color: "#fff"
+                }
+                Text {
+                    font.pixelSize: 18
+                    wrapMode: Text.WordWrap
+                    color: "#FFF"
+                    text: "Message"
                 }
             }
         }
@@ -58,7 +76,17 @@ Window {
                     font.pixelSize: 18
                     wrapMode: Text.WordWrap
                     color: "#FFF"
-                    text: sender
+                    text: fromAddress
+                }
+                Item {
+                    width: 4
+                    height: parent.height  - 25
+                }
+                Text {
+                    font.pixelSize: 18
+                    wrapMode: Text.WordWrap
+                    color: "#FFF"
+                    text: messageThread.payload.body
                 }
             }
         }
