@@ -82,7 +82,8 @@ Window {
             width: 40
             text: "Send"
             onClicked: {
-                messageWindow.messages.push({"messageText": messageText.text, "sender": window.userData.public_key })
+                print(messageText.text)
+                messageWindow.messages.append({"body": messageText.text, "sender": window.userData.public_key })
                 print(messageWindow.messages)
                 var messageInfo = {
                     "bit_address": taskWindow.task.task_address,
@@ -91,7 +92,7 @@ Window {
                     "public_key": window.userData.public_key
                 }
 
-                messageText.clearText()
+                messageText.text = ''
                 Message.sendMessage(messageInfo)
             }
         }

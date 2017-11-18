@@ -735,6 +735,10 @@ class Taskhive(object):
 
             verified, _ = self.verify_json(body_json)
             if verified:
+                try: 
+                    _ = verified['task_type']
+                except: 
+                    continue
                 if verified['task_type'].lower() == 'request':
                     verified_messages['requests'].append(verified)
                 elif verified['task_type'].lower() == 'offer':
