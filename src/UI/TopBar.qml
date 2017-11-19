@@ -94,7 +94,7 @@ Rectangle {
                 Text {
                     id: username
                     text: window.userData.guest ? "Guest": window.userData.handle
-                    font.pointSize: 22
+                    font.pixelSize: 22
                     color: "#fff"
                 }
                 Rectangle {

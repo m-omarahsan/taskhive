@@ -7,7 +7,7 @@ Item {
         anchors.left: parent.left
         anchors.leftMargin: 30
         text: selected
-        font.pointSize: 24
+        font.pixelSize: 24
         color: "#fff"
     }
     Rectangle {

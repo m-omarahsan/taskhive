@@ -10,7 +10,7 @@ Rectangle {
             anchors.left: parent.left
             anchors.top: parent.top
             text: qsTr("Startup Wizard")
-            font.pointSize: 42
+            font.pixelSize: 42
             font.bold: true
             color: "#fff"
             anchors.margins: {
@@ -23,7 +23,7 @@ Rectangle {
         anchors.top: title.bottom
         anchors.left: parent.left
         text: qsTr("Control the volume")
-        font.pointSize: 36
+        font.pixelSize: 36
         color: "#fff"
         anchors.margins: {
             left: 20
@@ -33,7 +33,7 @@ Rectangle {
     Text {
         id: uniqueCustomizeText
         text: qsTr("Customize your experience")
-        font.pointSize: 32
+        font.pixelSize: 32
         color: "#fff"
         anchors.left: parent.left
         anchors.top: title2.bottom
@@ -72,7 +72,7 @@ Rectangle {
                     }
                     style: RadioButtonStyle {
                         label: Text {
-                            font.pointSize: 22
+                            font.pixelSize: 22
                             text: "Noisy"
                             color: "#fff"
                         }
@@ -93,7 +93,7 @@ Rectangle {
                 }
                 Text {
                     width: 528
-                    font.pointSize: 18
+                    font.pixelSize: 18
                     color: "#fff"
                     text: qsTr("You will see <i>all</i> posts from <i>all</i> users, except the ones you manually ignore. This includes spam and attempted scams.")
                     Layout.fillWidth: true
@@ -129,12 +129,12 @@ Rectangle {
                                 label: Column {
                                     spacing: 5
                                     Text{
-                                    font.pointSize: 22
+                                    font.pixelSize: 22
                                     text: "Modest"
                                     color: "#fff"
                                     }
                                     Text {
-                                        font.pointSize: 12
+                                        font.pixelSize: 12
                                         text: "Recommended."
                                         color: "#fff"
                                     }
@@ -156,7 +156,7 @@ Rectangle {
                         }
                         Text {
                             width: 530
-                            font.pointSize: 18
+                            font.pixelSize:  18
                             color: "#fff"
                             text: qsTr("You will see all posts <i>except</i> those flagged by you and the users you follow.")
                             anchors.verticalCenter: parent.verticalCenter
@@ -190,7 +190,7 @@ Rectangle {
                     Layout.preferredWidth: 170
                     style: RadioButtonStyle {
                         label: Text {
-                            font.pointSize: 22
+                            font.pixelSize: 22
                             text: "Quiet"
                             color: "#fff"
                         }
@@ -211,7 +211,7 @@ Rectangle {
                  }
                 Text {
                     width: 530
-                    font.pointSize: 18
+                    font.pixelSize: 18
                     color: "#fff"
                     text: qsTr( "Posts and user flagged by top trusted users will automatically be hidden.")
                     anchors.verticalCenter: parent.verticalCenter
@@ -246,7 +246,7 @@ Rectangle {
                    Layout.preferredWidth: 170
                        style: RadioButtonStyle {
                            label: Text {
-                               font.pointSize: 24
+                               font.pixelSize: 24
                                text: "Muted"
                                color: "#fff"
                            }
@@ -274,7 +274,7 @@ Rectangle {
                            left: 20
                        }
                        Text {
-                           font.pointSize: 18
+                           font.pixelSize: 18
                            color: "#fff"
                            text: qsTr("Only posts made by those you follow and whom they follow (and so on) will be shown.")
                            fontSizeMode: Text.FixedSize
@@ -284,7 +284,7 @@ Rectangle {
                         }
                        Text {
                            id: warningMuted
-                           font.pointSize: 14
+                           font.pixelSize: 14
                            color: "#fff"
                            text: qsTr("<i>This mode is very limiting and is not recommended.</i>")
                            verticalAlignment: Text.AlignTop

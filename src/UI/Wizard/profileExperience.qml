@@ -7,7 +7,7 @@ Item {
         anchors.left: parent.left
         anchors.leftMargin: 30
         text: qsTr("Following")
-        font.pointSize: 24
+        font.pixelSize: 24
         color: "#fff"
     }
     Rectangle {
@@ -56,13 +56,13 @@ Item {
                             Text {
                                 id: textLink
                                 text: "sn0wmonster"
-                                font.pointSize: 18
+                                font.pixelSize: 18
                                 color: "#fff"
                             }
                             Text {
                                 id: fingerprintText
                                 text: "8c380fa68a3f"
-                                font.pointSize: 14
+                                font.pixelSize: 14
                                 color: "#fff"
                             }
                         }

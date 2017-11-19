@@ -49,7 +49,7 @@ ApplicationWindow {
                         id: requestsText
                         anchors.left: parent.left
                         text: qsTr("Requests")
-                        font.pointSize: 22
+                        font.pixelSize: 22
                         color: "#fff"
                     }
                     Row {
@@ -321,7 +321,7 @@ ApplicationWindow {
                         id: offersText
                         anchors.left: parent.left
                         text: qsTr("Offers")
-                        font.pointSize: 22
+                        font.pixelSize: 22
                         color: "#fff"
                     }
                     Row {

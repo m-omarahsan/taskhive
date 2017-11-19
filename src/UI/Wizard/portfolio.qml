@@ -17,7 +17,7 @@ Item {
             anchors.left: parent.left
             anchors.top: parent.top
             text: qsTr("Startup Wizard")
-            font.pointSize: 42
+            font.pixelSize: 42
             font.bold: true
             color: "#fff"
         }
@@ -25,7 +25,7 @@ Item {
             id: generalText
             anchors.top: title.bottom
             text: qsTr("What are you known for?\nProvide some samples.")
-            font.pointSize: 38
+            font.pixelSize: 38
             color: "#fff"
         }
         Item {

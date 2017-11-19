@@ -86,7 +86,7 @@ Window {
                     font.pixelSize: 18
                     wrapMode: Text.WordWrap
                     color: "#FFF"
-                    text: messageThread.payload.body
+                    text: body
                 }
             }
         }

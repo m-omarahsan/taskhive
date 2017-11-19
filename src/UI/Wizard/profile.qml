@@ -16,7 +16,7 @@ Item {
             anchors.left: parent.left
             anchors.top: parent.top
             text: qsTr("Startup Wizard")
-            font.pointSize: 42
+            font.pixelSize: 42
             font.bold: true
             color: "#fff"
         }
@@ -24,7 +24,7 @@ Item {
             id: generalText
             anchors.top: title.bottom
             text: qsTr("Known outside of Taskhive?\nLink your profiles.")
-            font.pointSize: 38
+            font.pixelSize: 38
             color: "#fff"
         }
         Column {
@@ -54,7 +54,7 @@ Item {
                     anchors.left: icon.right
                     anchors.right: parent.right
                     height: parent.height
-                    font.pointSize: 14
+                    font.pixelSize: 14
                     anchors.leftMargin: 10
                     color: "#000000"
                     verticalAlignment: TextInput.AlignVCenter
@@ -65,12 +65,12 @@ Item {
             Text {
                 id: pasteDescription
                 text: qsTr("Paste this somewhere on that page.")
-                font.pointSize: 28
+                font.pixelSize: 28
                 color: "#fff"
             }
             TextArea {
                 id: proofTextArea
-                font.pointSize: 28
+                font.pixelSize: 28
                 anchors.left: parent.left
                 anchors.right: parent.right
                 text: qsTr('{proof:"buyguy::8c380fa68a3f::bdc2870361f052aeb5987f406d7bf6eb457ef7ca17e68727"}')
