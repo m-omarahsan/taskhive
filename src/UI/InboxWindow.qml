@@ -69,7 +69,8 @@ Window {
         Rectangle {
             anchors.right: parent.right
             anchors.left: parent.left
-            height: 100
+            height: 50
+            color: "transparent"
             Row {
                 anchors.fill: parent
                 Text {

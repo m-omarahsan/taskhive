@@ -6,6 +6,8 @@ ApplicationWindow {
         id: window
         minimumWidth: 1200
         minimumHeight: 800
+        width: 1200
+        height: 800
         color: "#0c0c0c"
         title: "Taskhive"
         visible: true
