@@ -95,7 +95,7 @@ Window {
         target: Message
         onMsgThread: {
             for(var i=0;i<msg.length;i++){
-                inboxWindow.messages.append(msg[i])
+                inboxWindow.messages.append({"fromAddress": msg[i].fromAddress, "body": msg[i].messageThread[0].payload.body})
             }
         }
     }
