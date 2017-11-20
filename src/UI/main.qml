@@ -2,6 +2,7 @@ import QtQuick 2.7
 import QtQuick.Controls 2.0
 import QtQuick.Layouts 1.3
 import QtQuick.Dialogs 1.2
+import QtQuick.Window 2.1
 ApplicationWindow {
         id: window
         minimumWidth: 1200
@@ -11,6 +12,8 @@ ApplicationWindow {
         color: "#0c0c0c"
         title: "Taskhive"
         visible: true
+        x: (Screen.width - width) / 2
+        y: (Screen.height - 800) / 2
         property variant tasks: []
         property variant requests: []
         property variant offers: []
