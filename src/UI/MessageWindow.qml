@@ -112,6 +112,11 @@ Window {
         }
     }
     Component.onCompleted:  {
-        Message.getMessageThread(window.selectedTask.task_id, window.selectedTask.bit_address)
+        if(window.selectedTask.task_owner === window.userData.public_key){
+            Message.getMessageThread(window.selectedTask.task_id, inboxWindow.selectedMessage.fromAddress)
+        }
+        else {
+            Message.getMessageThread(window.selectedTask.task_id, window.selectedTask.bit_address)
+        }
     }
 }

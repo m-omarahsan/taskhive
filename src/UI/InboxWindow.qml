@@ -10,6 +10,7 @@ Window {
     color: "#3D3D3D"
 
     property ListModel messages: ListModel {}
+    property var selectedMessage: ListModel
     ScrollView {
         anchors.top: parent.top
         anchors.bottom: parent.bottom.top
@@ -60,6 +61,20 @@ Window {
                     wrapMode: Text.WordWrap
                     color: "#FFF"
                     text: "Message"
+                }
+            }
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onDoubleClicked: {
+                    parentContent.ListView.view.currentIndex = index
+                    parentContent.forceActiveFocus()
+                    inboxWindow.selectedMessage = parentContent.ListView.view.model[index]
+                    var component = Qt.createComponent("MessageWindow.qml")
+                    var task_window = component.createObject(window)
+                    task_window.show()
+
                 }
             }
         }
