@@ -669,7 +669,8 @@ class Taskhive(object):
                                     "payload": verified,
                                     "date_received": msg['receivedTime']
                                 }],
-                                "fromAddress": from_msg
+                                "fromAddress": from_msg,
+                                "msgid": msg['msgid']
                             })
 
 
@@ -693,20 +694,19 @@ class Taskhive(object):
                 if payload_type == 1:
                     if verified['task_id'] == task_id:
                         for mes in messages:
-                            if mes['fromAddress'] == from_msg:
-                                print(msg)
+                            if mes['fromAddress'] == msg['toAddress']:
                                 mes['messageThread'].append({
                                     "payload": verified,
                                     "date_received": msg['lastActionTime']
                                 })
                         if not messages:
-                            print(msg)
                             messages.append({
                                 "messageThread":[{
                                     "payload": verified,
                                     "date_received": msg['lastActionTime']
                                 }],
-                                "fromAddress": from_msg
+                                "fromAddress": msg['toAddress'],
+                                "msgid": msg['msgid']
                             })
         return messages
 

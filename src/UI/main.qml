@@ -12,8 +12,7 @@ ApplicationWindow {
         color: "#0c0c0c"
         title: "Taskhive"
         visible: true
-        x: (Screen.width - width) / 2
-        y: (Screen.height - 800) / 2
+        flags: Qt.WindowSystemMenuHint | Qt.Window | Qt.WindowMinimizeButtonHint | Qt.WindowCloseButtonHint | Qt.WindowTitleHint | Qt.WindowMaximizeButtonHint
         property variant tasks: []
         property variant requests: []
         property variant offers: []
@@ -170,6 +169,7 @@ ApplicationWindow {
                             parentContent.ListView.view.currentIndex = index
                             parentContent.forceActiveFocus()
                             window.selectedTask = parentContent.ListView.view.model[index]
+                            print("JSON STRING: " +JSON.stringify(window.tasks.offers))
                             var component = Qt.createComponent("TaskInformation.qml")
                             var task_window = component.createObject(window)
                             task_window.show()
