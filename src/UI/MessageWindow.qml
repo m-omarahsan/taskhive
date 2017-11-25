@@ -71,7 +71,11 @@ Window {
         TextArea {
             id: messageText
             height: 150
+            font.pixelSize: 12
             width: rectRow.width - 50
+            background: Rectangle {
+                anchors.fill: parent
+            }
 
         }
         Button {
