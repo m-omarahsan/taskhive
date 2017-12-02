@@ -65,7 +65,7 @@ Item {
                         id: fingerprint
                         color: "#fff"
                         text: qsTr("658393102")
-                        font.pointSize: 14
+                        font.pixelSize: 14
                     }
                     Image {
                         sourceSize.height: fingerprint.paintedHeight
@@ -83,7 +83,7 @@ Item {
                     text: handle
                     anchors.left: parent.left
                     anchors.leftMargin: 20
-                    font.pointSize: 22
+                    font.pixelSize: 22
                     color: "#fff"
                 }
                 Rectangle {

@@ -54,6 +54,7 @@ Window {
                                 if(taskWindow.task.task_owner === window.userData.public_key){
                                     var inboxComponent = Qt.createComponent("InboxWindow.qml")
                                     var inbox_window = inboxComponent.createObject(taskWindow)
+                                    print(inboxComponent.errorString())
                                     inbox_window.show()
                                 }
                                 else {

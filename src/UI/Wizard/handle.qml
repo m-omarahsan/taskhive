@@ -16,20 +16,20 @@ Item {
                 anchors.left: parent.left
                 anchors.top: parent.top
                 text: qsTr("Startup Wizard")
-                font.pointSize: 42
+                font.pixelSize: 42
                 font.bold: true
                 color: "#fff"
             }
         Text {
             anchors.top: title.bottom
             text: qsTr("You need an identity.\nLet's make one.")
-            font.pointSize: 38
+            font.pixelSize: 38
             color: "#fff"
         }
         Text {
             id: uniqueHandleText
             text: qsTr("Choose a unique handle.")
-            font.pointSize: 28
+            font.pixelSize: 28
             color: "#fff"
             anchors.verticalCenter: parent.verticalCenter
         }
@@ -90,7 +90,7 @@ Item {
             text: qsTr("Choose wisely: It can never be changed.")
             z: -1
             anchors.topMargin: 0
-            font.pointSize: 18
+            font.pixelSize: 18
             color: "#fff"
             anchors.top: searchHandleRec.bottom
         }

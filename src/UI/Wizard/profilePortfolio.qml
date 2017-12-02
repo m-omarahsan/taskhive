@@ -6,7 +6,7 @@ Item {
         anchors.left: parent.left
         anchors.leftMargin: 30
         text: qsTr("Portfolio")
-        font.pointSize: 24
+        font.pixelSize: 24
         color: "#fff"
     }
     Rectangle {

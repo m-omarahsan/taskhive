@@ -13,7 +13,7 @@ Item{
             anchors.left: parent.left
             anchors.top: parent.top
             text: qsTr("Startup Wizard")
-            font.pointSize: 42
+            font.pixelSize: 42
             font.bold: true
             color: "#fff"
             anchors.leftMargin: 20
@@ -22,7 +22,7 @@ Item{
             id: generalText
             anchors.top: title.bottom
             text: qsTr("Take back your privacy.")
-            font.pointSize: 38
+            font.pixelSize: 38
             color: "#fff"
             anchors.left: parent.left
             anchors.leftMargin: 20
@@ -30,7 +30,7 @@ Item{
         Text {
             id: uniqueCustomizeText
             text: qsTr("Choose your privacy model.")
-            font.pointSize: 32
+            font.pixelSize: 32
             color: "#fff"
             anchors.left: parent.left
             anchors.top: generalText.bottom
@@ -63,7 +63,7 @@ Item{
                 Text {
                     text: qsTr("Your interactions are limited for mutual protection, and you may only transact in cryptocurrencies.")
                     Layout.fillWidth: true
-                    font.pointSize: 14
+                    font.pixelSize: 14
                     color: "#fff"
                     wrapMode: Text.WordWrap
 
@@ -95,7 +95,7 @@ Item{
                         Text {
                             text: qsTr("Your profile contains only what you want it to, and you can choose what payment methods fit your needs, including those which reveal your personal identity.")
                             Layout.fillWidth: true
-                            font.pointSize: 14
+                            font.pixelSize: 14
                             color: "#fff"
                             wrapMode: Text.WordWrap
 
@@ -122,7 +122,7 @@ Item{
                     Text {
                         text: qsTr("Your profile contains only what you want it to, and you can choose what payment methods fit your needs, including those which reveal your personal identity.")
                         Layout.fillWidth: true
-                        font.pointSize: 14
+                        font.pixelSize: 14
                         color: "#fff"
                         wrapMode: Text.WordWrap
 

@@ -16,7 +16,7 @@ Item {
                 anchors.left: parent.left
                 anchors.top: parent.top
                 text: qsTr("Startup Wizard")
-                font.pointSize: 42
+                font.pixelSize: 42
                 font.bold: true
                 color: "#fff"
                 anchors.margins: {
@@ -27,7 +27,7 @@ Item {
             id: extra
             anchors.top: title.bottom
             text: qsTr("What are you good at?")
-            font.pointSize: 38
+            font.pixelSize: 38
             color: "#fff"
             anchors.leftMargin: 20
             anchors.left: parent.left
@@ -36,7 +36,7 @@ Item {
             id: uniqueHandleText
             text: qsTr("Let's choose your skills.")
             anchors.top: extra.bottom
-            font.pointSize: 32
+            font.pixelSize: 32
             color: "#fff"
             anchors.leftMargin: 20
             anchors.left: parent.left
@@ -58,7 +58,7 @@ Item {
                     id: tabData
                     property bool selected: false
                     text: modelData.name
-                    font.pointSize: 18
+                    font.pixelSize: 18
                     height: parent.height
                     width: 200
                     background: Rectangle {
@@ -124,7 +124,7 @@ Item {
                                     property bool selected: false
                                     id: currentTab
                                     text: modelData.name
-                                    font.pointSize: 18
+                                    font.pixelSize: 18
                                     height: parent.height
                                     width: 200
                                     background: Rectangle {

@@ -150,13 +150,13 @@ class DatabaseConnection(object):
 			result = self.ses.query(ChannelType).filter_by(name=t).first()
 			if not result:
 				typ = ChannelType(name=t)
-				ses.add(typ)
+				self.ses.add(typ)
 		self.ses.commit()
 		return self.ses.query(ChannelType).all()
 
 
 
-	def getProfile(self,):
+	def getProfile(self):
 		try:
 			profile = self.ses.query(Profile).all()[0]
 		except:

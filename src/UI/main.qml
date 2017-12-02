@@ -2,18 +2,23 @@ import QtQuick 2.7
 import QtQuick.Controls 2.0
 import QtQuick.Layouts 1.3
 import QtQuick.Dialogs 1.2
+import QtQuick.Window 2.1
 ApplicationWindow {
         id: window
         minimumWidth: 1200
         minimumHeight: 800
+        width: 1200
+        height: 800
         color: "#0c0c0c"
         title: "Taskhive"
         visible: true
+        flags: Qt.WindowSystemMenuHint | Qt.Window | Qt.WindowMinimizeButtonHint | Qt.WindowCloseButtonHint | Qt.WindowTitleHint | Qt.WindowMaximizeButtonHint
         property variant tasks: []
         property variant requests: []
         property variant offers: []
         property variant selectedTask: ListModel
         property variant userData: {"guest": true}
+        property variant selectedType
          function updateList(taskList){
              print(taskList)
          }
@@ -49,7 +54,7 @@ ApplicationWindow {
                         id: requestsText
                         anchors.left: parent.left
                         text: qsTr("Requests")
-                        font.pointSize: 22
+                        font.pixelSize: 22
                         color: "#fff"
                     }
                     Row {
@@ -72,6 +77,7 @@ ApplicationWindow {
                                         var create_task = createTaskComponent.createObject(window)
                                         print(createTaskComponent.errorString())
                                         create_task.show()
+                                        window.selectedType = 'Request'
                                     }
                                 }
                             }
@@ -165,6 +171,7 @@ ApplicationWindow {
                             parentContent.ListView.view.currentIndex = index
                             parentContent.forceActiveFocus()
                             window.selectedTask = parentContent.ListView.view.model[index]
+                            print("JSON STRING: " +JSON.stringify(window.tasks.offers))
                             var component = Qt.createComponent("TaskInformation.qml")
                             var task_window = component.createObject(window)
                             task_window.show()
@@ -321,7 +328,7 @@ ApplicationWindow {
                         id: offersText
                         anchors.left: parent.left
                         text: qsTr("Offers")
-                        font.pointSize: 22
+                        font.pixelSize: 22
                         color: "#fff"
                     }
                     Row {
@@ -331,6 +338,22 @@ ApplicationWindow {
                         Image {
                             id: iconAdd2
                             source: "images/icon-add.svg"
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if(userData.guest){
+                                        warningDialog.open()
+                                    }
+                                    else {
+                                        var createTaskComponent = Qt.createComponent("CreateTask.qml")
+                                        var create_task = createTaskComponent.createObject(window)
+                                        print(createTaskComponent.errorString())
+                                        create_task.show()
+                                        window.selectedType = 'Offer'
+                                    }
+                                }
+                            }
                         }
                         Image {
                             id: iconFilter2
