@@ -26,7 +26,7 @@ Window {
             "task_body": task_body.text,
             "task_title": task_title.text,
             "task_currency": task_currency.currentText,
-            "task_type": task_type.currentText,
+            "task_type": window.selectedType === 'Request' ? "Request": "Offer",
             "task_cost": task_cost.text,
             "task_deadline": task_deadline.text,
             "task_escrow_required": 1,
@@ -55,16 +55,10 @@ Window {
         anchors.leftMargin: 20
         anchors.topMargin: 20
         Text {
-            text: "Create a "
+            text: window.selectedType === 'Request' ? "Create a Request": "Create an Offer"
             color: "#fff"
             font.pixelSize: 25
-        }
-        ComboBox {
-            id: task_type
-            height: 30
-            model: ["Request", "Offer"]
-        }
-    }
+        }    }
     Rectangle {
         id: contentInfo
         anchors.left: parent.left

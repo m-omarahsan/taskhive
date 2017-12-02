@@ -18,6 +18,7 @@ ApplicationWindow {
         property variant offers: []
         property variant selectedTask: ListModel
         property variant userData: {"guest": true}
+        property variant selectedType
          function updateList(taskList){
              print(taskList)
          }
@@ -76,6 +77,7 @@ ApplicationWindow {
                                         var create_task = createTaskComponent.createObject(window)
                                         print(createTaskComponent.errorString())
                                         create_task.show()
+                                        window.selectedType = 'Request'
                                     }
                                 }
                             }
@@ -336,6 +338,22 @@ ApplicationWindow {
                         Image {
                             id: iconAdd2
                             source: "images/icon-add.svg"
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if(userData.guest){
+                                        warningDialog.open()
+                                    }
+                                    else {
+                                        var createTaskComponent = Qt.createComponent("CreateTask.qml")
+                                        var create_task = createTaskComponent.createObject(window)
+                                        print(createTaskComponent.errorString())
+                                        create_task.show()
+                                        window.selectedType = 'Offer'
+                                    }
+                                }
+                            }
                         }
                         Image {
                             id: iconFilter2

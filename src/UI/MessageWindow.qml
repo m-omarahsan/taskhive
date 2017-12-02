@@ -5,6 +5,8 @@ Window {
     id: messageWindow
     width: 400
     height: 600
+    minimumHeight: 600
+    minimumWidth: 400
     color: "#3D3D3D"
     property ListModel messages: ListModel {}
     property var msg
@@ -103,7 +105,6 @@ Window {
                 
 
                 messageText.text = ''
-                print(inboxWindow.selectedMessage.fromAddress)
                 Message.sendMessage(messageInfo)
             }
         }
