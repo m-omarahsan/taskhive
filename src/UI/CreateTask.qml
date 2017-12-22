@@ -317,15 +317,13 @@ Window {
             id: submitB
             text: "Submit"
             onClicked:  {
-                print(task_body.length)
-                print(task_title.length)
                 if(task_cost.acceptableInput && (task_title.length > 0) && (task_body.length > 0)){
                     createWindow.sendDataToThread()
+                    confirmationDialog.open()
                 }
                 else {
                     messageDialog.open()
                 }
-                createWindow.close()
 
             }
             style: ButtonStyle {
@@ -351,6 +349,16 @@ Window {
             }
         }
     }
+    MessageDialog {
+        id: confirmationDialog
+        title: qsTr("Task Information")
+        text: qsTr("New task has been created.")
+        icon: StandardIcon.Information
+        onAccepted: {
+            createWindow.close()
+        }
+    }
+
     MessageDialog {
         id: messageDialog
         title:  qsTr("Invalid Input")

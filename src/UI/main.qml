@@ -19,6 +19,7 @@ ApplicationWindow {
         property variant selectedTask: ListModel
         property variant userData: {"guest": true}
         property variant selectedType
+        property bool inboxOpen: false
          function updateList(taskList){
              print(taskList)
          }
@@ -186,7 +187,7 @@ ApplicationWindow {
                     id: test1
                     height: 60
                     width: requestsList.width
-                    color: "transparent"
+                    color: "#0c0c0c"
                     z: 999
                     Row {
                         anchors.left: parent.left
@@ -278,7 +279,7 @@ ApplicationWindow {
                 id: highlight
                 Rectangle {
                     width: requestsList.width; height: 60 -25
-                    color: "lightsteelblue"; radius: 5
+                    color: "grey"; radius: 5
                     y: requestsList.currentItem.y
                     Behavior on y {
                         SpringAnimation {
@@ -371,7 +372,7 @@ ApplicationWindow {
                 id: highlightOffers
                 Rectangle {
                     width: offersList.width; height: 60 -25
-                    color: "lightsteelblue"; radius: 5
+                    color: "grey"; radius: 5
                     y: offersList.currentItem.y
                     Behavior on y {
                         SpringAnimation {
@@ -415,6 +416,7 @@ ApplicationWindow {
                      sourceItem: img
                      height: img.height
                      width: img.width
+                     z: -1
                  }
              }
          }

@@ -89,6 +89,7 @@ Item {
         y: 0
         fillMode: Image.PreserveAspectFit
         source: "images/graphic-rating.svg"
+        visible: false
     }
     Image {
         id: fakeImage
@@ -102,47 +103,15 @@ Item {
         x: (parent.width / 2) - fakeImage.paintedWidth / 2
         y: (parent.height / 2) + 1
         source: "images/graphic-rating-hex-02.svg"
-
-    }
-    ColorOverlay{
-        source: centerImage
-        anchors.fill: centerImage
-        color: "#fff"
     }
     Image {
         id: centerImage2
         x: (parent.width / 2) - fakeImage.paintedWidth / 2
         y: 0
         source: "images/graphic-rating-hex-02.svg"
-
-    }
-    ColorOverlay{
-        source: centerImage2
-        anchors.fill: centerImage2
-        color: "#fff"
     }
 
-    Image {
-        id: centerImage3
-        x: 133
-        y: 0
-        source: "images/graphic-rating-hex-02.svg"
-    }
-
-    Image {
-        id: centerImage4
-        x: 133
-        y: 31
-        source: "images/graphic-rating-hex-02.svg"
-    }
-
-    Image {
-        id: centerImage5
-        x: 106
-        y: 15
-        source: "images/graphic-rating-hex-02.svg"
-    }
     Component.onCompleted: {
-        setReputation([5,2])
+        setReputation([10,10])
     }
 }

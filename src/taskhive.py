@@ -112,6 +112,8 @@ class Message(QObject):
 
     @pyqtSlot(str)
     def getMessageThread(self, task_id, from_add=None):
+        if task_id == 'EMPTY':
+            task_id = None
         self._msgThread = MessageThread(task_id, from_add)
         self._msgThread.msg.connect(self.msgThread)
         self._msgThread.start()

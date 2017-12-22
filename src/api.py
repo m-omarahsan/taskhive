@@ -656,7 +656,7 @@ class Taskhive(object):
             verified, payload_type = self.verify_json(body_json)
             if verified:
                 if payload_type == 1:
-                    if verified['task_id'] == task_id:
+                    if verified['task_id'] == task_id or (task_id is None and from_add is None):
                         for mes in messages:
                             if mes['fromAddress'] == from_msg:
                                 mes['messageThread'].append({
@@ -692,7 +692,7 @@ class Taskhive(object):
             verified, payload_type = self.verify_json(body_json)
             if verified:
                 if payload_type == 1:
-                    if verified['task_id'] == task_id:
+                    if verified['task_id'] == task_id or (task_id is None and from_add is None):
                         for mes in messages:
                             if mes['fromAddress'] == msg['toAddress']:
                                 mes['messageThread'].append({

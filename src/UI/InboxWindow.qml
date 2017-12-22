@@ -11,10 +11,11 @@ Window {
 
     property variant messages: []
     property variant selectedMessage: ListModel
+    property variant parent
     Rectangle {
         anchors.fill: parent
         color: "transparent"
-        
+
         Component {
             id: headerInbox
             Rectangle {
@@ -86,7 +87,7 @@ Window {
                         inboxWindow.selectedMessage = parentContent.ListView.view.model[index]
                         print("JSON STRING: " +JSON.stringify(inboxWindow.selectedMessage))
                         var component = Qt.createComponent("MessageWindow.qml")
-                        var task_window = component.createObject(taskWindow)
+                        var task_window = component.createObject(inboxWindow)
                         print(component.errorString())
                         task_window.show()
 
@@ -116,6 +117,15 @@ Window {
         }
     }
     Component.onCompleted: {
-        Message.getMessageThread(window.selectedTask.task_id)
+        print(window.inboxOpen)
+        if(window.inboxOpen){
+            Message.getMessageThread('EMPTY')
+        }
+        else {
+            Message.getMessageThread(window.selectedTask.task_id)
+        }
+    }
+    onClosing: {
+        window.inboxOpen = false
     }
 }

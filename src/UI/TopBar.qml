@@ -75,6 +75,17 @@ Rectangle {
                     Image {
                         id: msgIcon
                         source: "images/icon-msg.svg"
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                var component = Qt.createComponent("InboxWindow.qml")
+                                window.inboxOpen = true
+                                var messagesWindow = component.createObject(window)
+                                print(component.errorString())
+                                messagesWindow.show()
+                            }
+                        }
                     }
                     Image {
                         id: contractsIcon
