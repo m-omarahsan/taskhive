@@ -68,8 +68,9 @@ class TaskThread(QThread):
         self._localAPI.create_bitmessage_api()
         while not self._paused:
             result = self._localAPI.getPostings()
-            self.newTask.emit(result)
             connections, _, _, _ = self._localAPI.client_connections()
+            result['connections'] = connections
+            self.newTask.emit(result)
             print(connections)
             time.sleep(5)
 

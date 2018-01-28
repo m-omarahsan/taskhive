@@ -20,6 +20,7 @@ ApplicationWindow {
         property variant userData: {"guest": true}
         property variant selectedType
         property bool inboxOpen: false
+        property int connections: 0
          function updateList(taskList){
              print(taskList)
          }
@@ -27,6 +28,7 @@ ApplicationWindow {
             id: toolbar
             width: window.width
             height: window.height * 0.15
+            connections: window.connections
         }
         Rectangle {
             id: requests
@@ -309,7 +311,7 @@ ApplicationWindow {
         }
         Rectangle {
             id: offers
-            height: window.height * 0.40
+            height: window.height * 0.35
             width: parent.width
             anchors.top: requests.bottom
             color: "transparent"
@@ -404,7 +406,7 @@ ApplicationWindow {
              id: img
              visible: false
              source: "background.png"
-             height: window.height * 0.15
+             height: window.height * 0.10
              fillMode: Image.PreserveAspectFit
         }
 
@@ -426,6 +428,7 @@ ApplicationWindow {
                 window.tasks = result
                 window.requests = result.requests
                 window.offers = result.offers
+                window.connections = result.connections
              }
          }
          MessageDialog {

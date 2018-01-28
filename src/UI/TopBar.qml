@@ -1,13 +1,14 @@
 import QtQuick 2.1
 import QtQuick.Window 2.2
-import QtQuick.Controls 1.2
+import QtQuick.Controls 2.3
 import QtQuick.Layouts 1.1
-
+import QtGraphicalEffects 1.0
 
 Rectangle {
     id: toolbar
     color: "transparent"
     property alias honeycomb: honeycomb
+    property int connections: 0
     anchors {
         top: parent.top
         left: parent.left
@@ -69,8 +70,49 @@ Rectangle {
                     anchors.verticalCenter: toolBarTop.verticalCenter
                     spacing: 20
                     Image {
-                        id: notificationIcon
+                        id: fakeIcon
                         source: "images/icon-notification.svg"
+                        property alias hovered: mouseArea.containsMouse
+                        visible: false
+                    }
+                    Rectangle{
+                        color: "transparent"
+                        width: fakeIcon.width
+                        height: fakeIcon.height
+                        Image {
+                            id: notificationIcon
+                            source: "images/icon-notification.svg"
+                            property alias hovered: mouseArea.containsMouse
+                            MouseArea {
+                                id: mouseArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                            }
+                            ToolTip {
+                                parent: notificationIcon
+                                visible: notificationIcon.hovered
+                                text: qsTr("There are " + toolbar.connections + " connections.")
+                            }
+                        }
+                        ColorOverlay {
+                            id: notificationOverlay
+                            anchors.fill: notificationIcon
+                            source: notificationIcon
+                            color: {
+                                if(toolbar.connections > 3){
+                                    this.color = "#5ACF68"
+                                }
+                                else if(toolbar.connections === 2){
+                                    this.color = "#ffeb38"
+                                }
+                                else if(toolbar.connections === 1){
+                                    this.color = "#ff0004"
+                                }
+                                else {
+                                    this.color = "gray"
+                                }
+                            }
+                        }
                     }
                     Image {
                         id: msgIcon
