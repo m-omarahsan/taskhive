@@ -1,6 +1,6 @@
 import QtQuick 2.1
 import QtQuick.Window 2.2
-import QtQuick.Controls 1.2
+import QtQuick.Controls 2.3
 import QtQuick.Layouts 1.3
 import "../"
 
@@ -29,5 +29,37 @@ Window {
         id: mainStack
         anchors.fill: parent
         initialItem: Qt.resolvedUrl('creationProfile.qml')
+        pushEnter: Transition {
+            PropertyAnimation {
+                property: "opacity"
+                from: 0
+                to:1
+                duration: 200
+            }
+        }
+        pushExit: Transition {
+            PropertyAnimation {
+                property: "opacity"
+                from: 1
+                to:0
+                duration: 200
+            }
+        }
+        popEnter: Transition {
+            PropertyAnimation {
+                property: "opacity"
+                from: 0
+                to:1
+                duration: 200
+            }
+        }
+        popExit: Transition {
+            PropertyAnimation {
+                property: "opacity"
+                from: 1
+                to:0
+                duration: 200
+            }
+        }
     }
 }

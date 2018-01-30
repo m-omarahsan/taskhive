@@ -104,65 +104,137 @@ ApplicationWindow {
                     anchors.right: parent.right
                     anchors.left: parent.left
                     color: "transparent"
-                    height: 60
+                    height: 40
                     Row {
+                        id: rowContent
                         anchors.left: parent.left
                         anchors.right: parent.right
-                        Item {
-                            width: 4
+                        Rectangle {
+                            width: 2
                             height: parentContent.height
                         }
-                        Text {
-                            text: modelData.task_title
-                            color: "#fff"
-                            font.pixelSize: 16
-                            width: requestsList.width / 5
-                            elide: Text.ElideRight
+                        Rectangle {
+                            width: (requestsList.width / 5)  - 4
+                            height: rowContent.height
+                            color: "transparent"
+                            Text {
+                                text: modelData.task_title
+                                color: "#fff"
+                                font.pixelSize: 16
+                                width: (requestsList.width / 5)  - 4
+                                elide: Text.ElideRight
+                                horizontalAlignment: Text.verticalCenter
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                anchors.topMargin: 5
+                                anchors.leftMargin: 5
+                            }
                         }
                         Item {
-                            width: 4
+                            width: 2
+                            height: parentContent.height
+                        }
+                        Rectangle {
+                            width: 2
+                            height: parentContent.height
+                        }
+                        Rectangle {
+                            width: (requestsList.width / 5)  - 4
+                            height: rowContent.height
+                            color: "transparent"
+                            Text {
+                                text: modelData.task_body
+                                color: "#fff"
+                                font.pixelSize: 16
+                                width: (requestsList.width / 5)  - 4
+                                elide: Text.ElideRight
+                                horizontalAlignment: Text.verticalCenter
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                anchors.topMargin: 5
+                                anchors.leftMargin: 5
+                            }
+                        }
+                        Item {
+                            width: 2
+                            height: parentContent.height
+                        }
+                        Rectangle {
+                            width: 2
+                            height: parentContent.height
+                        }
+                        Rectangle {
+                            width: (requestsList.width / 5)  - 4
+                            height: rowContent.height
+                            color: "transparent"
+                            Text {
+                                text: modelData.task_payment_methods[0]
+                                color: "#fff"
+                                font.pixelSize: 16
+                                width: (requestsList.width / 5)  - 4
+                                elide: Text.ElideRight
+                                horizontalAlignment: Text.verticalCenter
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                anchors.topMargin: 5
+                                anchors.leftMargin: 5
+                            }
+                        }
+                        Item {
+                            width: 2
+                            height: parentContent.height
+                        }
+                        Rectangle {
+                            width: 2
                             height: parentContent.height
                         }
 
-                        Text {
-                            text: modelData.task_body
-                            color: "#fff"
-                            font.pixelSize: 16
-                            width: requestsList.width / 5
-                            elide: Text.ElideRight
+                        Rectangle {
+                            width: (requestsList.width / 5)  - 4
+                            height: rowContent.height
+                            color: "transparent"
+                            Text {
+                                text: modelData.task_escrow_required
+                                color: "#fff"
+                                font.pixelSize: 16
+                                width: (requestsList.width / 5)  - 4
+                                elide: Text.ElideRight
+                                horizontalAlignment: Text.verticalCenter
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                anchors.topMargin: 5
+                                anchors.leftMargin: 5
+                            }
+                        }
+                        Rectangle {
+                            width: 2
+                            height: parentContent.height
+                        }
+                        Rectangle {
+                            width: (requestsList.width / 5)  - 6
+                            height: rowContent.height
+                            color: "transparent"
+                            Text {
+                                text: modelData.task_currency
+                                color: "#fff"
+                                font.pixelSize: 16
+                                width: (requestsList.width / 5)  - 6
+                                elide: Text.ElideRight
+                                horizontalAlignment: Text.verticalCenter
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                anchors.topMargin: 5
+                                anchors.leftMargin: 5
+                            }
                         }
                         Item {
                             width: 4
                             height: parentContent.height
                         }
-
-                        Text {
-                            text: modelData.task_payment_methods[0]
-                            color: "#fff"
-                            font.pixelSize: 16
-                            width: requestsList.width / 5
-                        }
-                        Item {
-                            width: 4
+                        Rectangle {
+                            width: 2
                             height: parentContent.height
-                        }
-                        Text {
-                            text: modelData.task_escrow_required
                             color: "#fff"
-                            font.pixelSize: 16
-                            width: requestsList.width / 5
-                        }
-                        Item {
-                            width: 4
-                            height: parentContent.height
-                        }
-
-                        Text {
-                            text: modelData.task_currency
-                            color: "#fff"
-                            font.pixelSize: 16
-                            horizontalAlignment: Text.AlignHCenter
-                            width: requestsList.width / 5
                         }
 
                     }
@@ -181,6 +253,11 @@ ApplicationWindow {
 
                         }
                     }
+                    Rectangle{
+                        width: parent.width
+                        height: 2
+                        anchors.top: parentContent.bottom
+                    }
                 }
             }
             Component {
@@ -192,34 +269,40 @@ ApplicationWindow {
                     color: "#0c0c0c"
                     z: 999
                     Row {
+                        id: headerRow
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.top: parent.top
                         anchors.topMargin: 20
                         Rectangle {
                             width: 2
-                            height: test1.height - 25
+                            height: test1.height - 20
                             color: "#fff"
                         }
-                        Text{
-                            width: requestsList.width / 5
-                            text: "Title"
-                            color: "#fff"
-                            font.pixelSize: 18
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
+                        Rectangle{
+                             width: (requestsList.width / 5) - 4
+                             height: test1.height  - 20
+                             color: "transparent"
+                            Text{
+                                width: (requestsList.width / 5) - 4
+                                text: "Title"
+                                color: "#fff"
+                                font.pixelSize: 18
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
                         }
                         Item {
                             width: 2
-                            height: test1.height  - 25
+                            height: test1.height  - 20
                         }
                         Rectangle {
                             width: 2
-                            height: test1.height  - 25
+                            height: test1.height - 20
                             color: "#fff"
                         }
                         Text{
-                            width: requestsList.width / 5
+                            width: (requestsList.width / 5) - 4
                             text: "Description"
                             color: "#fff"
                             font.pixelSize: 18
@@ -227,15 +310,15 @@ ApplicationWindow {
                         }
                         Item {
                             width: 2
-                            height: test1.height
+                            height: test1.height - 20
                         }
                         Rectangle {
                             width: 2
-                            height: test1.height  - 25
+                            height: test1.height - 20
                             color: "#fff"
                         }
                         Text{
-                            width: requestsList.width / 5
+                            width:(requestsList.width / 5) - 4
                             text: "Payment Methods"
                             color: "#fff"
                             font.pixelSize: 18
@@ -243,45 +326,58 @@ ApplicationWindow {
                         }
                         Item {
                             width: 2
-                            height: test1.height  - 25
+                            height: test1.height - 20
                         }
                         Rectangle {
                             width: 2
-                            height: test1.height  - 25
+                            height: test1.height - 20
                             color: "#fff"
                         }
                         Text{
-                            width: requestsList.width / 5
+                            width: (requestsList.width / 5) - 6
                             text: "Escrow Required"
                             color: "#fff"
                             font.pixelSize: 18
                             horizontalAlignment: Text.AlignHCenter
                         }
+                        Item {
+                            width: 2
+                            height: test1.height - 20
+                        }
                         Rectangle {
                             width: 2
-                            height: test1.height  - 25
+                            height: test1.height - 20
                             color: "#fff"
                         }
                         Text{
-                            width: requestsList.width / 5
+                            width: (requestsList.width / 5) - 4
                             text: "Currency"
                             color: "#fff"
                             font.pixelSize: 18
                             horizontalAlignment: Text.AlignHCenter
                         }
+                        Item {
+                            width: 2
+                            height: test1.height - 20
+                        }
                         Rectangle {
                             width: 2
-                            height: test1.height  - 25
+                            height: test1.height - 20
                             color: "#fff"
                         }
+                    }
+                    Rectangle{
+                        width: parent.width
+                        height: 2
+                        anchors.top: test1.bottom
                     }
                 }
             }
             Component {
                 id: highlight
                 Rectangle {
-                    width: requestsList.width; height: 60 -25
-                    color: "grey"; radius: 5
+                    width: requestsList.width; height: 40
+                    color: "grey";
                     y: requestsList.currentItem.y
                     Behavior on y {
                         SpringAnimation {
@@ -373,8 +469,8 @@ ApplicationWindow {
             Component {
                 id: highlightOffers
                 Rectangle {
-                    width: offersList.width; height: 60 -25
-                    color: "grey"; radius: 5
+                    width: offersList.width; height: 40
+                    color: "grey"
                     y: offersList.currentItem.y
                     Behavior on y {
                         SpringAnimation {

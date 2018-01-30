@@ -1,5 +1,5 @@
 import QtQuick 2.0
-import QtQuick.Controls 1.4
+import QtQuick.Controls 2.3
 import QtQuick.Layouts 1.3
 import QtQuick.Dialogs 1.2
 import QtQuick.Controls.Styles 1.4
@@ -36,6 +36,7 @@ Item{
             anchors.top: generalText.bottom
             anchors.leftMargin: 20
         }
+        ButtonGroup { id: privacyExclusive }
         Column {
             id: privacyOptions
             anchors.top: uniqueCustomizeText.bottom
@@ -43,7 +44,6 @@ Item{
             anchors.right: parent.right
             anchors.left: parent.left
             spacing: 5
-            ExclusiveGroup { id: privacyExclusive }
 
             RowLayout {
                 anchors.right: parent.right
@@ -56,9 +56,9 @@ Item{
                     width: 40
                 }
                 CustomRadioButton {
-                    radioLabel: qsTr("Pseudonymous")
+                    text: "Pseudonymous"
                     Layout.preferredWidth: 230
-                    exclusiveGroup: privacyExclusive
+                    ButtonGroup.group: privacyExclusive
                 }
                 Text {
                     text: qsTr("Your interactions are limited for mutual protection, and you may only transact in cryptocurrencies.")
@@ -88,9 +88,9 @@ Item{
                             width: 40
                         }
                         CustomRadioButton {
-                            radioLabel: qsTr("Private")
+                            text: "Private"
                             Layout.preferredWidth: 230
-                            exclusiveGroup: privacyExclusive
+                            ButtonGroup.group: privacyExclusive
                         }
                         Text {
                             text: qsTr("Your profile contains only what you want it to, and you can choose what payment methods fit your needs, including those which reveal your personal identity.")
@@ -115,7 +115,7 @@ Item{
                         width: 40
                     }
                     CustomRadioButton {
-                        radioLabel: qsTr("Private")
+                        text: qsTr("Private")
                         Layout.preferredWidth: 230
 
                     }

@@ -29,7 +29,6 @@ Rectangle {
                 {
                     // searchTextChanged(text)
                     suggestionBox.visible = true
-                    suggestionBox.activeFocus = true;
                 }
             }
             onActiveFocusChanged: {
