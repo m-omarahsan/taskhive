@@ -47,19 +47,17 @@ Rectangle {
                     Layout.fillHeight: false
                     Layout.fillWidth: false
                 }
-                SearchBar {
+                SearchInput {
                     id: search
                     height: 38
                     transformOrigin: Item.Center
                     Layout.maximumWidth: 350
-                    popupHeight: 0
                     Layout.fillHeight: false
                     Layout.fillWidth: true
                     anchors.leftMargin: 20
                     anchors.right: icons.left
                     anchors.rightMargin: 20
                     anchors.verticalCenter: toolBarTop.verticalCenter
-                    resultBackgroundColor: "#0c0c0c"
                 }
                 Row {
                     id: icons

@@ -21,6 +21,7 @@ ApplicationWindow {
         property variant selectedType
         property bool inboxOpen: false
         property int connections: 0
+        property var currentItem
          function updateList(taskList){
              print(taskList)
          }

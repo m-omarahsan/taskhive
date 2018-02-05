@@ -48,6 +48,22 @@ Item {
             anchors.top: uniqueHandleText.bottom
             anchors.topMargin: 100
             height: 180
+            MouseArea {
+                        id: mouseArea
+                        drag.target: frame
+                        drag.minimumX: frame.width - width
+                        drag.minimumY: frame.height - height
+                        drag.maximumX: 0
+                        drag.maximumY: 0
+                        anchors.fill: parent
+                    }
+            ScrollIndicator {
+                id: horizontalIndicator
+                active: mouseArea.pressed
+                orientation: Qt.Horizontal
+                size: frame.width
+                position: -frame.x / frame.width
+            }
             background: Rectangle {
                 color: "#737373"
             }
