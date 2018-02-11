@@ -68,7 +68,6 @@ Item {
 
         Rectangle {
             id: droplist
-            property int currentOption: 0
 
             anchors.left: input.left
             anchors.right: parent.right

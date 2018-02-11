@@ -9,6 +9,7 @@ Item {
     id: item1
     property variant subCategory: wizard.categories.sub_categories
     Rectangle {
+        id: rectangle
         anchors.fill: parent
         color: "transparent"
         Text {
@@ -43,30 +44,13 @@ Item {
         }
         TabBar {
             id: frame
-            anchors.right: parent.right
-            anchors.left: parent.left
             anchors.top: uniqueHandleText.bottom
             anchors.topMargin: 100
-            height: 180
-            MouseArea {
-                        id: mouseArea
-                        drag.target: frame
-                        drag.minimumX: frame.width - width
-                        drag.minimumY: frame.height - height
-                        drag.maximumX: 0
-                        drag.maximumY: 0
-                        anchors.fill: parent
-                    }
-            ScrollIndicator {
-                id: horizontalIndicator
-                active: mouseArea.pressed
-                orientation: Qt.Horizontal
-                size: frame.width
-                position: -frame.x / frame.width
-            }
+            anchors.right: parent.right
+            anchors.left: parent.left
             background: Rectangle {
-                color: "#737373"
-            }
+                    color: "#737373"
+                }
             Repeater {
                 model: wizard.categories
 
@@ -74,39 +58,23 @@ Item {
                     id: tabData
                     property bool selected: false
                     text: modelData.name
-                    font.pixelSize: 18
-                    height: parent.height
                     width: 200
+                    font.pixelSize: 18
+                    contentItem: Text {
+                        text: tabData.text
+                        font: tabData.font
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                        wrapMode: Text.WordWrap
+                        color: "#FFFFFF"
+                    }
                     background: Rectangle {
-                        border.color: "transparent"
-                        color: tabData.checked ? "#BD9CBE": "#737373"
-                    }
-                    contentItem: Rectangle {
-                        height: tabData.height
-                        width: tabData.width
-                        color: "transparent"
-                        Text {
-                            id: textContent
-                            text: tabData.text
-                            font: tabData.font
-                            width: parent.width
-                            color: "#FEFEFE"
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.verticalCenter: parent.verticalCenter
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            wrapMode: Text.WordWrap
+                            implicitWidth: frame.width
+                            implicitHeight: 180
+                            opacity: enabled ? 1 : 0.3
+                            color: tabData.checked ? "#BD9CBE": "#737373"
                         }
-                        Image {
-                            source: "../images/07.svg"
-                            sourceSize.height: 40
-                            sourceSize.width: 40
-                            visible: tabData.selected ? true: false
-                            anchors.left: textContent.right
-                            anchors.leftMargin: 5
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                    }
                 }
 
             }
@@ -140,40 +108,31 @@ Item {
                                     property bool selected: false
                                     id: currentTab
                                     text: modelData.name
-                                    font.pixelSize: 18
-                                    height: parent.height
                                     width: 200
+                                    font.pixelSize: 18
                                     background: Rectangle {
-                                        border.color: "transparent"
-                                        color: currentTab.checked ? "#958096": "#8D758E"
-                                    }
-                                    contentItem: Rectangle {
-                                        height: currentTab.height
-                                        width: currentTab.width
-                                        color: "transparent"
-                                        Text {
-                                            id: textContent2
-                                            text: currentTab.text
-                                            font: currentTab.font
-                                            width: parent.width
-                                            color: "#FEFEFE"
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            wrapMode: Text.WordWrap
-                                            horizontalAlignment: Text.AlignHCenter
-                                            verticalAlignment: Text.AlignVCenter
+                                            implicitWidth: frame.width
+                                            implicitHeight: 180
+                                            opacity: enabled ? 1 : 0.3
+                                            color: currentTab.checked ? "#958096": "#8D758E"
                                         }
-                                        Image {
-                                            source: "../images/07.svg"
-                                            sourceSize.height: 40
-                                            sourceSize.width: 40
-                                            visible: currentTab.selected ? true: false
-                                            anchors.left: textContent2.right
-                                            anchors.leftMargin: 5
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
+                                    contentItem: Text {
+                                        text: currentTab.text
+                                        font: currentTab.font
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                        elide: Text.ElideRight
+                                        wrapMode: Text.WordWrap
+                                        color: "#FFFFFF"
                                         MouseArea {
                                             anchors.fill: parent
+                                            onClicked: {
+                                                if(currentTab.checked){
+                                                    currentTab.checked = false
+                                                } else {
+                                                    currentTab.checked = true
+                                                }
+                                            }
                                             onDoubleClicked: {
                                                 currentTab.selected = true
                                                 var found = false;
@@ -194,6 +153,7 @@ Item {
                                             }
                                         }
                                     }
+
                                 }
                             }
                         }
