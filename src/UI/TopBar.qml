@@ -98,16 +98,16 @@ Rectangle {
                             source: notificationIcon
                             color: {
                                 if(toolbar.connections > 3){
-                                    this.color = "#5ACF68"
+                                    return "#5ACF68"
                                 }
                                 else if(toolbar.connections === 2){
-                                    this.color = "#ffeb38"
+                                    return "#ffeb38"
                                 }
                                 else if(toolbar.connections === 1){
-                                    this.color = "#ff0004"
+                                    return "#ff0004"
                                 }
                                 else {
-                                    this.color = "gray"
+                                    return "gray"
                                 }
                             }
                         }

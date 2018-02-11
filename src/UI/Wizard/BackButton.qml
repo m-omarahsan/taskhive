@@ -3,6 +3,7 @@ import QtGraphicalEffects 1.0
 Item {
     property int sizeH: 80
     property int sizeW: 80
+    property bool first: false
     height: sizeH
     width: sizeW
     Image {
@@ -14,7 +15,11 @@ Item {
             anchors.fill: parent
        onClicked: {
            wizardStack.pop()
-           profileStack.pop()
+           if(!first){
+               profileStack.pop()
+           } else {
+               profileStack.clear()
+           }
        }
         }
     }

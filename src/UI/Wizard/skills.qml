@@ -176,6 +176,7 @@ Item {
             BackButton {
                 id: back
                 anchors.leftMargin: 0
+                first: true
             }
         }
     }

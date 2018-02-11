@@ -99,7 +99,6 @@ Item {
                 ListElement { name: "DESCRIPTION" }
                 ListElement { name: "ADDRESS" }
             }
-
             Column {
                 id: dropcolumn
                 anchors.left: parent.left
@@ -133,7 +132,6 @@ Item {
                             id: delegateArea
                             anchors.fill: parent
                             onClicked: {
-                                droplist.currentOption = index
                                 droplist.height = 0
                                 input.text = name
                             }
