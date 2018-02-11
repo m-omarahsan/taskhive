@@ -42,44 +42,48 @@ Item {
             anchors.leftMargin: 20
             anchors.left: parent.left
         }
-        TabBar {
+        ListView {
             id: frame
             anchors.top: uniqueHandleText.bottom
             anchors.topMargin: 100
             anchors.right: parent.right
             anchors.left: parent.left
-            background: Rectangle {
-                    color: "#737373"
-                }
-            Repeater {
-                model: wizard.categories
-
-                TabButton {
-                    id: tabData
-                    property bool selected: false
+            height: 180
+            model: wizard.categories
+            orientation: ListView.Horizontal
+            flickableDirection: Flickable.AutoFlickDirection
+            interactive: true
+            boundsBehavior: Flickable.StopAtBounds
+            focus: true
+            highlight: Rectangle { color: "#BD9CBE";}
+            highlightFollowsCurrentItem: true
+            delegate: Rectangle {
+                property bool selected: false
+                property alias text: mainText.text
+                id: wrapper
+                height: 180
+                width: 200
+                color: wrapper.ListView.isCurrentItem ? "#BD9CBE": "#737373"
+                Text {
+                    id: mainText
                     text: modelData.name
-                    width: 200
                     font.pixelSize: 18
-                    contentItem: Text {
-                        text: tabData.text
-                        font: tabData.font
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideRight
-                        wrapMode: Text.WordWrap
-                        color: "#FFFFFF"
-                    }
-                    background: Rectangle {
-                            implicitWidth: frame.width
-                            implicitHeight: 180
-                            opacity: enabled ? 1 : 0.3
-                            color: tabData.checked ? "#BD9CBE": "#737373"
-                        }
+                    horizontalAlignment: Text.AlignHCenter
+                    anchors.verticalCenter: parent.verticalCenter
+                    elide: Text.ElideRight
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    color: "#FFFFFF"
                 }
-
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                       frame.currentIndex = index
+                    }
+                }
             }
+            ScrollBar.horizontal: ScrollBar {}
         }
-
         StackLayout {
             id: stack1
             anchors.left: parent.left
@@ -89,77 +93,67 @@ Item {
             currentIndex: frame.currentIndex
             Repeater {
                 model: wizard.categories
-
                 Item {
                     id: homeTab
-
-                        TabBar {
-                            id: homeTabTab
-                            anchors.right: parent.right
-                            anchors.left: parent.left
-                            anchors.top: parent.top
+                    ListView {
+                        id: subTab
+                        anchors.right: parent.right
+                        anchors.left: parent.left
+                        height: 180
+                        model: modelData.sub_categories
+                        orientation: ListView.Horizontal
+                        flickableDirection: Flickable.AutoFlickDirection
+                        boundsBehavior: Flickable.StopAtBounds
+                        ScrollBar.horizontal: ScrollBar {}
+                        delegate: Rectangle {
+                            id: wrapper2
+                            property bool selected: false
                             height: 180
-                            background: Rectangle {
-                                color: "#958096"
+                            width: 200
+                            color: wrapper2.ListView.isCurrentItem ? "#BD9CBE": "#737373"
+                            Text {
+                                id: textElement
+                                text: modelData.name
+                                font.pixelSize: 18
+                                horizontalAlignment: Text.AlignHCenter
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: parent.width
+                                elide: Text.ElideRight
+                                wrapMode: Text.WordWrap
+                                color: "#FFFFFF"
                             }
-                            Repeater {
-                                model: modelData.sub_categories
-                                TabButton {
-                                    property bool selected: false
-                                    id: currentTab
-                                    text: modelData.name
-                                    width: 200
-                                    font.pixelSize: 18
-                                    background: Rectangle {
-                                            implicitWidth: frame.width
-                                            implicitHeight: 180
-                                            opacity: enabled ? 1 : 0.3
-                                            color: currentTab.checked ? "#958096": "#8D758E"
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                   subTab.currentIndex = index
+                                }
+                                onDoubleClicked: {
+                                    var found = false;
+                                    var someText = frame.currentItem.text;
+                                    if(!wrapper2.selected)
+                                    {
+                                        print(someText)
+                                        for(var i = 0; i<wizard.selectedSkills.count; i++){
+                                            if(wizard.selectedSkills.get(i).name === someText){
+                                                wizard.selectedSkills.get(i).sub_categories.append({"name":textElement.text});
+                                                wizard.skills.push({"name": someText})
+                                                found = true;
+                                            }
                                         }
-                                    contentItem: Text {
-                                        text: currentTab.text
-                                        font: currentTab.font
-                                        horizontalAlignment: Text.AlignHCenter
-                                        verticalAlignment: Text.AlignVCenter
-                                        elide: Text.ElideRight
-                                        wrapMode: Text.WordWrap
-                                        color: "#FFFFFF"
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            onClicked: {
-                                                if(currentTab.checked){
-                                                    currentTab.checked = false
-                                                } else {
-                                                    currentTab.checked = true
-                                                }
-                                            }
-                                            onDoubleClicked: {
-                                                currentTab.selected = true
-                                                var found = false;
-                                                var someText = frame.itemAt(stack1.currentIndex).text;
-                                                print(someText)
-                                                for(var i = 0; i<wizard.selectedSkills.count; i++){
-                                                    if(wizard.selectedSkills.get(i).name === someText){
-                                                        wizard.selectedSkills.get(i).sub_categories.append({"name":currentTab.text});
-                                                        wizard.skills.push({"name": someText})
-                                                        found = true;
-                                                    }
-                                                }
-                                                if(!found){
-                                                    print(currentTab.text)
-                                                    wizard.selectedSkills.append({"name":someText, "sub_categories":[{"name":currentTab.text}]})
-                                                }
-                                                print(window.selectedSkills)
-                                            }
+                                        if(!found){
+                                            print(textElement.text)
+                                            wizard.selectedSkills.append({"name":someText, "sub_categories":[{"name":textElement.text}]})
                                         }
                                     }
-
+                                    wrapper2.selected = true
+                                    print(window.selectedSkills)
                                 }
                             }
                         }
-                }
+                    }
                 }
             }
+        }
         Rectangle{
             id: buttons
             height: wizard.height * 0.10
