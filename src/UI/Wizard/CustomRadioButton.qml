@@ -7,7 +7,6 @@ RadioButton {
     contentItem: Text {
         text: control.text
         font: control.font
-        font.pixelSize: 22
         opacity: enabled ? 1.0 : 0.3
         color: "#ffffff"
         horizontalAlignment: Text.AlignHCenter

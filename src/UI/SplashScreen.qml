@@ -1,5 +1,5 @@
 import QtQuick 2.6
-
+import "Components/"
 SplashScreen {
     id: splash
     property int timeoutInterval: 2000

@@ -20,7 +20,7 @@ Item {
 
             Image {
                 anchors.centerIn: parent
-                source: "images/icon-search.svg"
+                source: "../images/icon-search.svg"
             }
         }
 

@@ -3,6 +3,7 @@ import QtQuick.Controls 2.3
 import QtQuick.Layouts 1.3
 import QtQuick.Dialogs 1.2
 import QtQuick.Controls.Styles 1.4
+import "../Components/"
 Item{
     Rectangle {
         id: mainText
@@ -160,13 +161,13 @@ Item{
             wizardStackURL:'privacySetting.qml'
             onClicked: {
                 wizardStack.push(Qt.resolvedUrl('privacySetting.qml'))
-                if(privacyExclusive.current){
+                if(privacyExclusive.checkedButton){
                     wizardStack.push(Qt.resolvedUrl('privacySetting.qml'))
                     mainStack.push(Qt.resolvedUrl('finishedProfile.qml'))
                     var profileData = {
                         "categories": wizard.skills,
                         "handle": wizard.handle,
-                        "privacy_level": privacyExclusive.current.radioLabel,
+                        "privacy_level": privacyExclusive.checkedButton.radioLabel,
                     }
                     CreateProfile.create(profileData)
                 }else {

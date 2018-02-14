@@ -42,7 +42,7 @@ Rectangle {
             id: iconSearch
             visible: showIcon
             anchors.left: parent.left
-            source: "images/icon-search.svg"
+            source: "../images/icon-search.svg"
             anchors.verticalCenter: parent.verticalCenter
             anchors.leftMargin: 12
             anchors.rightMargin: 10

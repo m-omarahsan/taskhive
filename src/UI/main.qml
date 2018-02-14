@@ -3,6 +3,7 @@ import QtQuick.Controls 2.0
 import QtQuick.Layouts 1.3
 import QtQuick.Dialogs 1.2
 import QtQuick.Window 2.1
+import "Components/"
 ApplicationWindow {
         id: window
         minimumWidth: 1200
@@ -502,7 +503,7 @@ ApplicationWindow {
         Image {
              id: img
              visible: false
-             source: "background.png"
+             source: "images/background.png"
              height: window.height * 0.10
              fillMode: Image.PreserveAspectFit
         }

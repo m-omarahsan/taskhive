@@ -69,7 +69,7 @@ Rectangle {
                     spacing: 20
                     Image {
                         id: fakeIcon
-                        source: "images/icon-notification.svg"
+                        source: "../images/icon-notification.svg"
                         property alias hovered: mouseArea.containsMouse
                         visible: false
                     }
@@ -79,7 +79,7 @@ Rectangle {
                         height: fakeIcon.height
                         Image {
                             id: notificationIcon
-                            source: "images/icon-notification.svg"
+                            source: "../images/icon-notification.svg"
                             property alias hovered: mouseArea.containsMouse
                             MouseArea {
                                 id: mouseArea
@@ -114,7 +114,7 @@ Rectangle {
                     }
                     Image {
                         id: msgIcon
-                        source: "images/icon-msg.svg"
+                        source: "../images/icon-msg.svg"
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
@@ -129,11 +129,11 @@ Rectangle {
                     }
                     Image {
                         id: contractsIcon
-                        source: "images/icon-contract.svg"
+                        source: "../images/icon-contract.svg"
                     }
                     Image {
                         id: trustIcon
-                        source: "images/icon-trust.svg"
+                        source: "../images/icon-trust.svg"
                     }
                 }
             }
