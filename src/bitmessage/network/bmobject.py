@@ -4,26 +4,32 @@ import time
 from addresses import calculateInventoryHash
 from debug import logger
 from inventory import Inventory
+from network.dandelion import Dandelion
 import protocol
 import state
 
-class BMObjectInsufficientPOWError(Exception): pass
+class BMObjectInsufficientPOWError(Exception):
+    errorCodes = ("Insufficient proof of work")
 
 
-class BMObjectInvalidDataError(Exception): pass
+class BMObjectInvalidDataError(Exception):
+    errorCodes = ("Data invalid")
 
 
-class BMObjectExpiredError(Exception): pass
+class BMObjectExpiredError(Exception):
+    errorCodes = ("Object expired")
 
 
-class BMObjectUnwantedStreamError(Exception): pass
+class BMObjectUnwantedStreamError(Exception):
+    errorCodes = ("Object in unwanted stream")
 
 
-class BMObjectInvalidError(Exception): pass
+class BMObjectInvalidError(Exception):
+    errorCodes = ("Invalid object")
 
 
 class BMObjectAlreadyHaveError(Exception):
-    pass
+    errorCodes = ("Already have this object")
 
 
 class BMObject(object):
@@ -39,8 +45,9 @@ class BMObject(object):
         self.version = version
         self.streamNumber = streamNumber
         self.inventoryHash = calculateInventoryHash(data)
-        self.data = data
-        self.tag = data[payloadOffset:payloadOffset+32]
+        # copy to avoid memory issues
+        self.data = bytearray(data)
+        self.tag = self.data[payloadOffset:payloadOffset+32]
 
     def checkProofOfWorkSufficient(self):
         # Let us check to make sure that the proof of work is sufficient.
@@ -66,6 +73,9 @@ class BMObject(object):
             raise BMObjectUnwantedStreamError()
 
     def checkAlreadyHave(self):
+        # if it's a stem duplicate, pretend we don't have it
+        if Dandelion().hasHash(self.inventoryHash):
+            return
         if self.inventoryHash in Inventory():
             raise BMObjectAlreadyHaveError()
 

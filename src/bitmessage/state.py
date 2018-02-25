@@ -43,6 +43,9 @@ trustedPeer = None
 
 discoveredPeers = {}
 
+# tracking pending downloads globally, for stats
+missingObjects = {}
+
 Peer = collections.namedtuple('Peer', ['host', 'port'])
 
 def resetNetworkProtocolAvailability():
@@ -50,3 +53,5 @@ def resetNetworkProtocolAvailability():
     networkProtocolAvailability = {'IPv4': None, 'IPv6': None, 'onion': None}
 
 resetNetworkProtocolAvailability()
+
+dandelion = 0

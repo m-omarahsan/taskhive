@@ -21,6 +21,7 @@ import helper_inbox
 import helper_msgcoding
 import helper_sent
 from helper_sql import *
+from helper_ackPayload import genAckPayload
 import protocol
 import queues
 import state
@@ -97,14 +98,18 @@ class objectProcessor(threading.Thread):
         # Let's check whether this is a message acknowledgement bound for us.
         if len(data) < 32:
             return
-        if data[-32:] in shared.ackdataForWhichImWatching:
+
+        # bypass nonce and time, retain object type/version/stream + body
+        readPosition = 16
+
+        if data[readPosition:] in shared.ackdataForWhichImWatching:
             logger.info('This object is an acknowledgement bound for me.')
-            del shared.ackdataForWhichImWatching[data[-32:]]
+            del shared.ackdataForWhichImWatching[data[readPosition:]]
             sqlExecute('UPDATE sent SET status=?, lastactiontime=? WHERE ackdata=?',
                        'ackreceived',
                        int(time.time()), 
-                       data[-32:])
-            queues.UISignalQueue.put(('updateSentItemStatusByAckdata', (data[-32:], tr._translate("MainWindow",'Acknowledgement of the message received %1').arg(l10n.formatTimestamp()))))
+                       data[readPosition:])
+            queues.UISignalQueue.put(('updateSentItemStatusByAckdata', (data[readPosition:], tr._translate("MainWindow",'Acknowledgement of the message received %1').arg(l10n.formatTimestamp()))))
         else:
             logger.debug('This object is not an acknowledgement bound for me.')
 
@@ -184,8 +189,8 @@ class objectProcessor(threading.Thread):
     def processpubkey(self, data):
         pubkeyProcessingStartTime = time.time()
         shared.numberOfPubkeysProcessed += 1
-#        queues.UISignalQueue.put((
-#            'updateNumberOfPubkeysProcessed', 'no data'))
+        queues.UISignalQueue.put((
+            'updateNumberOfPubkeysProcessed', 'no data'))
         embeddedTime, = unpack('>Q', data[8:16])
         readPosition = 20  # bypass the nonce, time, and object type
         addressVersion, varintLength = decodeVarint(
@@ -333,8 +338,8 @@ class objectProcessor(threading.Thread):
     def processmsg(self, data):
         messageProcessingStartTime = time.time()
         shared.numberOfMessagesProcessed += 1
-#        queues.UISignalQueue.put((
-#            'updateNumberOfMessagesProcessed', 'no data'))
+        queues.UISignalQueue.put((
+            'updateNumberOfMessagesProcessed', 'no data'))
         readPosition = 20 # bypass the nonce, time, and object type
         msgVersion, msgVersionLength = decodeVarint(data[readPosition:readPosition + 9])
         if msgVersion != 1:
@@ -351,7 +356,7 @@ class objectProcessor(threading.Thread):
         # This is not an acknowledgement bound for me. See if it is a message
         # bound for me by trying to decrypt it with my private keys.
         
-        for key, cryptorObject in shared.myECCryptorObjects.items():
+        for key, cryptorObject in sorted(shared.myECCryptorObjects.items(), key=lambda x: random.random()):
             try:
                 if initialDecryptionSuccessful: # continue decryption attempts to avoid timing attacks
                     cryptorObject.decrypt(data[readPosition:])
@@ -504,7 +509,10 @@ class objectProcessor(threading.Thread):
         if toLabel == '':
             toLabel = toAddress
 
-        decodedMessage = helper_msgcoding.MsgDecode(messageEncodingType, message)
+        try:
+            decodedMessage = helper_msgcoding.MsgDecode(messageEncodingType, message)
+        except helper_msgcoding.MsgDecodeException:
+            return
         subject = decodedMessage.subject
         body = decodedMessage.body
 
@@ -548,8 +556,10 @@ class objectProcessor(threading.Thread):
                 message = time.strftime("%a, %Y-%m-%d %H:%M:%S UTC", time.gmtime(
                 )) + '   Message ostensibly from ' + fromAddress + ':\n\n' + body
                 fromAddress = toAddress  # The fromAddress for the broadcast that we are about to send is the toAddress (my address) for the msg message we are currently processing.
-                ackdataForBroadcast = OpenSSL.rand(
-                    32)  # We don't actually need the ackdataForBroadcast for acknowledgement since this is a broadcast message but we can use it to update the user interface when the POW is done generating.
+                # We don't actually need the ackdata for acknowledgement since this is a broadcast message but we can use it to update the user interface when the POW is done generating.
+                streamNumber = decodeAddress(fromAddress)[2]
+
+                ackdata = genAckPayload(streamNumber, 0)
                 toAddress = '[Broadcast subscribers]'
                 ripe = ''
 
@@ -563,7 +573,7 @@ class objectProcessor(threading.Thread):
                      fromAddress, 
                      subject, 
                      message, 
-                     ackdataForBroadcast, 
+                     ackdata, 
                      int(time.time()), # sentTime (this doesn't change)
                      int(time.time()), # lastActionTime
                      0, 
@@ -575,7 +585,7 @@ class objectProcessor(threading.Thread):
                 helper_sent.insert(t)
 
                 queues.UISignalQueue.put(('displayNewSentMessage', (
-                    toAddress, '[Broadcast subscribers]', fromAddress, subject, message, ackdataForBroadcast)))
+                    toAddress, '[Broadcast subscribers]', fromAddress, subject, message, ackdata)))
                 queues.workerQueue.put(('sendbroadcast', ''))
 
         # Don't send ACK if invalid, blacklisted senders, invisible messages, disabled or chan
@@ -603,8 +613,8 @@ class objectProcessor(threading.Thread):
     def processbroadcast(self, data):
         messageProcessingStartTime = time.time()
         shared.numberOfBroadcastsProcessed += 1
-#        queues.UISignalQueue.put((
-#            'updateNumberOfBroadcastsProcessed', 'no data'))
+        queues.UISignalQueue.put((
+            'updateNumberOfBroadcastsProcessed', 'no data'))
         inventoryHash = calculateInventoryHash(data)
         readPosition = 20  # bypass the nonce, time, and object type
         broadcastVersion, broadcastVersionLength = decodeVarint(
@@ -624,7 +634,7 @@ class objectProcessor(threading.Thread):
             """
             signedData = data[8:readPosition]
             initialDecryptionSuccessful = False
-            for key, cryptorObject in shared.MyECSubscriptionCryptorObjects.items():
+            for key, cryptorObject in sorted(shared.MyECSubscriptionCryptorObjects.items(), key=lambda x: random.random()):
                 try:
                     if initialDecryptionSuccessful: # continue decryption attempts to avoid timing attacks
                         cryptorObject.decrypt(data[readPosition:])
@@ -754,7 +764,10 @@ class objectProcessor(threading.Thread):
             sendersAddressVersion, sendersStream, calculatedRipe)
         logger.debug('fromAddress: ' + fromAddress)
 
-        decodedMessage = helper_msgcoding.MsgDecode(messageEncodingType, message)
+        try:
+            decodedMessage = helper_msgcoding.MsgDecode(messageEncodingType, message)
+        except helper_msgcoding.MsgDecodeException:
+            return
         subject = decodedMessage.subject
         body = decodedMessage.body
 

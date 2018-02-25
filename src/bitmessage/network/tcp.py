@@ -18,6 +18,7 @@ from network.advanceddispatcher import AdvancedDispatcher
 from network.bmproto import BMProtoError, BMProtoInsufficientDataError, BMProtoExcessiveDataError, BMProto
 from network.bmobject import BMObject, BMObjectInsufficientPOWError, BMObjectInvalidDataError, BMObjectExpiredError, BMObjectUnwantedStreamError, BMObjectInvalidError, BMObjectAlreadyHaveError
 import network.connectionpool
+from network.dandelion import Dandelion
 from network.node import Node
 import network.asyncore_pollchoose as asyncore
 from network.proxy import Proxy, ProxyError, GeneralProxyError
@@ -71,7 +72,6 @@ class TCPConnection(BMProto, TLSDispatcher):
             self.local = False
         #shared.connectedHostsList[self.destination] = 0
         ObjectTracker.__init__(self)
-        UISignalQueue.put(('updateNetworkStatusTab', 'no data'))
         self.bm_proto_reset()
         self.set_state("bm_header", expectBytes=protocol.Header.size)
 
@@ -88,7 +88,7 @@ class TCPConnection(BMProto, TLSDispatcher):
                 if self.skipUntil > time.time():
                     logger.debug("Initial skipping processing getdata for %.2fs", self.skipUntil - time.time())
             else:
-                logger.debug("Skipping processing getdata due to missing object for %.2fs", self.skipUntil - time.time())
+                logger.debug("Skipping processing getdata due to missing object for %.2fs", delay)
                 self.skipUntil = time.time() + delay
 
     def state_connection_fully_established(self):
@@ -101,11 +101,13 @@ class TCPConnection(BMProto, TLSDispatcher):
         if not self.isOutbound and not self.local:
             shared.clientHasReceivedIncomingConnections = True
             UISignalQueue.put(('setStatusIcon', 'green'))
-        UISignalQueue.put(('updateNetworkStatusTab', 'no data'))
+        UISignalQueue.put(('updateNetworkStatusTab', (self.isOutbound, True, self.destination)))
         self.antiIntersectionDelay(True)
         self.fullyEstablished = True
         if self.isOutbound:
             knownnodes.increaseRating(self.destination)
+        if self.isOutbound:
+            Dandelion().maybeAddStem(self)
         self.sendAddr()
         self.sendBigInv()
 
@@ -165,6 +167,9 @@ class TCPConnection(BMProto, TLSDispatcher):
             # may lock for a long time, but I think it's better than thousands of small locks
             with self.objectsNewToThemLock:
                 for objHash in Inventory().unexpired_hashes_by_stream(stream):
+                    # don't advertise stem objects on bigInv
+                    if Dandelion().hasHash(objHash):
+                        continue
                     bigInvList[objHash] = 0
                     self.objectsNewToThem[objHash] = time.time()
         objectCount = 0
@@ -175,7 +180,7 @@ class TCPConnection(BMProto, TLSDispatcher):
             payload += hash
             objectCount += 1
             if objectCount >= BMProto.maxObjectCount:
-                self.sendChunk()
+                sendChunk()
                 payload = b''
                 objectCount = 0
 
@@ -210,10 +215,14 @@ class TCPConnection(BMProto, TLSDispatcher):
     def handle_write(self):
         TLSDispatcher.handle_write(self)
 
-    def handle_close(self, reason=None):
+    def handle_close(self):
         if self.isOutbound and not self.fullyEstablished:
             knownnodes.decreaseRating(self.destination)
-        BMProto.handle_close(self, reason)
+        if self.fullyEstablished:
+            UISignalQueue.put(('updateNetworkStatusTab', (self.isOutbound, False, self.destination)))
+            if self.isOutbound:
+                Dandelion().maybeRemoveStem(self)
+        BMProto.handle_close(self)
 
 
 class Socks5BMConnection(Socks5Connection, TCPConnection):
@@ -283,7 +292,10 @@ class TCPServer(AdvancedDispatcher):
             if len(network.connectionpool.BMConnectionPool().inboundConnections) + \
                 len(network.connectionpool.BMConnectionPool().outboundConnections) > \
                 BMConfigParser().safeGetInt("bitmessagesettings", "maxtotalconnections") + \
-                BMConfigParser().safeGetInt("bitmessagesettings", "maxbootstrapconnections"):
+                BMConfigParser().safeGetInt("bitmessagesettings", "maxbootstrapconnections") + 10:
+                # 10 is a sort of buffer, in between it will go through the version handshake
+                # and return an error to the peer
+                logger.warning("Server full, dropping connection")
                 sock.close()
                 return
             try:

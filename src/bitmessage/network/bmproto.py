@@ -1,14 +1,16 @@
 import base64
 import hashlib
-import time
+import random
 import socket
 import struct
+import time
 
 from bmconfigparser import BMConfigParser
 from debug import logger
 from inventory import Inventory
 import knownnodes
 from network.advanceddispatcher import AdvancedDispatcher
+from network.dandelion import Dandelion
 from network.bmobject import BMObject, BMObjectInsufficientPOWError, BMObjectInvalidDataError, \
         BMObjectExpiredError, BMObjectUnwantedStreamError, BMObjectInvalidError, BMObjectAlreadyHaveError
 import network.connectionpool
@@ -22,13 +24,16 @@ import shared
 import state
 import protocol
 
-class BMProtoError(ProxyError): pass
+class BMProtoError(ProxyError):
+    errorCodes = ("Protocol error")
 
 
-class BMProtoInsufficientDataError(BMProtoError): pass
+class BMProtoInsufficientDataError(BMProtoError):
+    errorCodes = ("Insufficient data")
 
 
-class BMProtoExcessiveDataError(BMProtoError): pass
+class BMProtoExcessiveDataError(BMProtoError):
+    errorCodes = ("Too much data")
 
 
 class BMProto(AdvancedDispatcher, ObjectTracker):
@@ -70,7 +75,9 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
             self.set_state("bm_header", length=1)
             self.bm_proto_reset()
             logger.debug("Bad magic")
-            self.handle_close("Bad magic")
+            if self.socket.type == socket.SOCK_STREAM:
+                self.close_reason = "Bad magic"
+                self.set_state("close")
             return False
         if self.payloadLength > BMProto.maxMessageSize:
             self.invalid = True
@@ -110,10 +117,14 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
                 logger.debug("%s:%i already got object, skipping", self.destination.host, self.destination.port)
             except struct.error:
                 logger.debug("decoding error, skipping")
+        elif self.socket.type == socket.SOCK_DGRAM:
+            # broken read, ignore
+            pass
         else:
             #print "Skipping command %s due to invalid data" % (self.command)
             logger.debug("Closing due to invalid command %s", self.command)
-            self.handle_close("Invalid command %s" % (self.command))
+            self.close_reason = "Invalid command %s" % (self.command)
+            self.set_state("close")
             return False
         if retval:
             self.set_state("bm_header", length=self.payloadLength)
@@ -134,16 +145,16 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
     def decode_payload_node(self):
         services, host, port = self.decode_payload_content("Q16sH")
         if host[0:12] == '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xFF\xFF':
-            host = socket.inet_ntop(socket.AF_INET, host[12:])
+            host = socket.inet_ntop(socket.AF_INET, str(host[12:16]))
         elif host[0:6] == '\xfd\x87\xd8\x7e\xeb\x43':
             # Onion, based on BMD/bitcoind
             host = base64.b32encode(host[6:]).lower() + ".onion"
         else:
-            host = socket.inet_ntop(socket.AF_INET6, host)
+            host = socket.inet_ntop(socket.AF_INET6, str(host))
         if host == "":
             # This can happen on Windows systems which are not 64-bit compatible 
             # so let us drop the IPv6 address. 
-            host = socket.inet_ntop(socket.AF_INET, host[12:])
+            host = socket.inet_ntop(socket.AF_INET, str(host[12:16]))
 
         return Node(services, host, port)
 
@@ -266,28 +277,55 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
         # skip?
         if time.time() < self.skipUntil:
             return True
-        #TODO make this more asynchronous and allow reordering
-        for i in items:
-            try:
-                self.append_write_buf(protocol.CreatePacket('object', Inventory()[i].payload))
-            except KeyError:
+        #TODO make this more asynchronous
+        random.shuffle(items)
+        for i in map(str, items):
+            if Dandelion().hasHash(i) and \
+                    self != Dandelion().objectChildStem(i):
                 self.antiIntersectionDelay()
-                logger.info('%s asked for an object we don\'t have.', self.destination)
+                logger.info('%s asked for a stem object we didn\'t offer to it.', self.destination)
+                break
+            else:
+                try:
+                    self.append_write_buf(protocol.CreatePacket('object', Inventory()[i].payload))
+                except KeyError:
+                    self.antiIntersectionDelay()
+                    logger.info('%s asked for an object we don\'t have.', self.destination)
+                    break
+        # I think that aborting after the first missing/stem object is more secure
+        # when using random reordering, as the recipient won't know exactly which objects we refuse to deliver
         return True
 
-    def bm_command_inv(self):
+    def _command_inv(self, dandelion=False):
         items = self.decode_payload_content("l32s")
 
         if len(items) >= BMProto.maxObjectCount:
-            logger.error("Too many items in inv message!")
+            logger.error("Too many items in %sinv message!", "d" if dandelion else "")
             raise BMProtoExcessiveDataError()
         else:
             pass
 
-        for i in items:
+        # ignore dinv if dandelion turned off
+        if dandelion and not state.dandelion:
+            return True
+
+        for i in map(str, items):
+            if i in Inventory() and not Dandelion().hasHash(i):
+                continue
+            if dandelion and not Dandelion().hasHash(i):
+                Dandelion().addHash(i, self)
             self.handleReceivedInventory(i)
 
         return True
+
+    def bm_command_inv(self):
+        return self._command_inv(False)
+
+    def bm_command_dinv(self):
+        """
+        Dandelion stem announce
+        """
+        return self._command_inv(True)
 
     def bm_command_object(self):
         objectOffset = self.payloadOffset
@@ -298,11 +336,11 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
             logger.info('The payload length of this object is too large (%s bytes). Ignoring it.' % len(self.payload) - self.payloadOffset)
             raise BMProtoExcessiveDataError()
 
-        self.object.checkProofOfWorkSufficient()
         try:
+            self.object.checkProofOfWorkSufficient()
             self.object.checkEOLSanity()
             self.object.checkAlreadyHave()
-        except (BMObjectExpiredError, BMObjectAlreadyHaveError) as e:
+        except (BMObjectExpiredError, BMObjectAlreadyHaveError, BMObjectInsufficientPOWError) as e:
             BMProto.stopDownloadingObject(self.object.inventoryHash)
             raise e
         try:
@@ -314,12 +352,21 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
 
         try:
             self.object.checkObjectByType()
-            objectProcessorQueue.put((self.object.objectType, self.object.data))
+            objectProcessorQueue.put((self.object.objectType, buffer(self.object.data)))
         except BMObjectInvalidError as e:
             BMProto.stopDownloadingObject(self.object.inventoryHash, True)
+        else:
+            try:
+                del state.missingObjects[self.object.inventoryHash]
+            except KeyError:
+                pass
+
+        if self.object.inventoryHash in Inventory() and Dandelion().hasHash(self.object.inventoryHash):
+            Dandelion().removeHash(self.object.inventoryHash, "cycle detection")
 
         Inventory()[self.object.inventoryHash] = (
-                self.object.objectType, self.object.streamNumber, self.payload[objectOffset:], self.object.expiresTime, self.object.tag)
+                self.object.objectType, self.object.streamNumber, buffer(self.payload[objectOffset:]), self.object.expiresTime, buffer(self.object.tag))
+        self.handleReceivedObject(self.object.streamNumber, self.object.inventoryHash)
         invQueue.put((self.object.streamNumber, self.object.inventoryHash, self.destination))
         return True
 
@@ -330,14 +377,17 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
         addresses = self._decode_addr()
         for i in addresses:
             seenTime, stream, services, ip, port = i
-            decodedIP = protocol.checkIPAddress(ip)
+            decodedIP = protocol.checkIPAddress(str(ip))
             if stream not in state.streamsInWhichIAmParticipating:
                 continue
             if decodedIP is not False and seenTime > time.time() - BMProto.addressAlive:
                 peer = state.Peer(decodedIP, port)
-                if peer in knownnodes.knownNodes[stream] and knownnodes.knownNodes[stream][peer]["lastseen"] > seenTime:
-                    continue
-                if len(knownnodes.knownNodes[stream]) < BMConfigParser().get("knownnodes", "maxnodes"):
+                try:
+                    if knownnodes.knownNodes[stream][peer]["lastseen"] > seenTime:
+                        continue
+                except KeyError:
+                    pass
+                if len(knownnodes.knownNodes[stream]) < int(BMConfigParser().get("knownnodes", "maxnodes")):
                     with knownnodes.knownNodesLock:
                         try:
                             knownnodes.knownNodes[stream][peer]["lastseen"] = seenTime
@@ -444,6 +494,20 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
                     return False
             except:
                 pass
+        if not self.isOutbound:
+            # incoming from a peer we're connected to as outbound, or server full
+            # report the same error to counter deanonymisation
+            if state.Peer(self.destination.host, self.peerNode.port) in \
+                network.connectionpool.BMConnectionPool().inboundConnections or \
+                len(network.connectionpool.BMConnectionPool().inboundConnections) + \
+                len(network.connectionpool.BMConnectionPool().outboundConnections) > \
+                BMConfigParser().safeGetInt("bitmessagesettings", "maxtotalconnections") + \
+                BMConfigParser().safeGetInt("bitmessagesettings", "maxbootstrapconnections"):
+                self.append_write_buf(protocol.assembleErrorMessage(fatal=2,
+                    errorText="Server full, please try again later."))
+                logger.debug ("Closed connection to %s due to server full or duplicate inbound/outbound.",
+                    str(self.destination))
+                return False
         if network.connectionpool.BMConnectionPool().isAlreadyConnected(self.nonce):
             self.append_write_buf(protocol.assembleErrorMessage(fatal=2,
                 errorText="I'm connected to myself. Closing connection."))
@@ -479,8 +543,7 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
         for connection in network.connectionpool.BMConnectionPool().inboundConnections.values() + \
                 network.connectionpool.BMConnectionPool().outboundConnections.values():
             try:
-                with connection.objectsNewToMeLock:
-                    del connection.objectsNewToMe[hashId]
+                del connection.objectsNewToMe[hashId]
             except KeyError:
                 pass
             if not forwardAnyway:
@@ -489,14 +552,21 @@ class BMProto(AdvancedDispatcher, ObjectTracker):
                         del connection.objectsNewToThem[hashId]
                 except KeyError:
                     pass
+        try:
+            del state.missingObjects[hashId]
+        except KeyError:
+            pass
 
-    def handle_close(self, reason=None):
+    def handle_close(self):
         self.set_state("close")
-        if reason is None:
+        if not (self.accepting or self.connecting or self.connected):
+            # already disconnected
+            return
+        try:
+            logger.debug("%s:%i: closing, %s", self.destination.host, self.destination.port, self.close_reason)
+        except AttributeError:
             try:
                 logger.debug("%s:%i: closing", self.destination.host, self.destination.port)
             except AttributeError:
                 logger.debug("Disconnected socket closing")
-        else:
-            logger.debug("%s:%i: closing, %s", self.destination.host, self.destination.port, reason)
         AdvancedDispatcher.handle_close(self)

@@ -61,7 +61,7 @@ class UDPSocket(BMProto):
             pass
 
     def state_bm_command(self):
-        BMProto.state_bm_command(self)
+        return BMProto.state_bm_command(self)
 
     # disable most commands before doing research / testing
     # only addr (peer discovery), error and object are implemented
@@ -89,7 +89,7 @@ class UDPSocket(BMProto):
         remoteport = False
         for i in addresses:
             seenTime, stream, services, ip, port = i
-            decodedIP = protocol.checkIPAddress(ip)
+            decodedIP = protocol.checkIPAddress(str(ip))
             if stream not in state.streamsInWhichIAmParticipating:
                 continue
             if seenTime < time.time() - BMProto.maxTimeOffset or seenTime > time.time() + BMProto.maxTimeOffset:
@@ -142,7 +142,7 @@ class UDPSocket(BMProto):
         else:
             self.local = False
         # overwrite the old buffer to avoid mixing data and so that self.local works correctly
-        self.read_buf = recdata
+        self.read_buf[0:] = recdata
         self.bm_proto_reset()
         receiveDataQueue.put(self.listening)
 
@@ -151,6 +151,7 @@ class UDPSocket(BMProto):
             retval = self.socket.sendto(self.write_buf, ('<broadcast>', UDPSocket.port))
         except socket.error as e:
             logger.error("socket error on sendato: %s", str(e))
+            retval = 0
         self.slice_write_buf(retval)
 
 

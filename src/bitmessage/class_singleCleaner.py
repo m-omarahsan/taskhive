@@ -1,7 +1,7 @@
+import gc
 import threading
 import shared
 import time
-import sys
 import os
 
 import tr#anslate
@@ -13,7 +13,6 @@ from network.connectionpool import BMConnectionPool
 from debug import logger
 import knownnodes
 import queues
-import protocol
 import state
 
 """
@@ -45,6 +44,7 @@ class singleCleaner(threading.Thread, StoppableThread):
         self.initStop()
 
     def run(self):
+        gc.disable()
         timeWeLastClearedInventoryAndPubkeysTables = 0
         try:
             shared.maximumLengthOfTimeToBotherResendingMessages = (float(BMConfigParser().get('bitmessagesettings', 'stopresendingafterxdays')) * 24 * 60 * 60) + (float(BMConfigParser().get('bitmessagesettings', 'stopresendingafterxmonths')) * (60 * 60 * 24 *365)/12)
@@ -62,12 +62,10 @@ class singleCleaner(threading.Thread, StoppableThread):
             Inventory().flush()
             queues.UISignalQueue.put(('updateStatusBar', ''))
             
-            protocol.broadcastToSendDataQueues((
-                0, 'pong', 'no data')) # commands the sendData threads to send out a pong message if they haven't sent anything else in the last five minutes. The socket timeout-time is 10 minutes.
             # If we are running as a daemon then we are going to fill up the UI
             # queue which will never be handled by a UI. We should clear it to
             # save memory.
-            if BMConfigParser().safeGetBoolean('bitmessagesettings', 'daemon'):
+            if shared.thisapp.daemon:
                 queues.UISignalQueue.queue.clear()
             if timeWeLastClearedInventoryAndPubkeysTables < int(time.time()) - 7380:
                 timeWeLastClearedInventoryAndPubkeysTables = int(time.time())
@@ -95,16 +93,24 @@ class singleCleaner(threading.Thread, StoppableThread):
 
             # cleanup old nodes
             now = int(time.time())
-            toDelete = []
             with knownnodes.knownNodesLock:
                 for stream in knownnodes.knownNodes:
-                    for node in knownnodes.knownNodes[stream].keys():
+                    keys = knownnodes.knownNodes[stream].keys()
+                    for node in keys:
                         try:
+                            # scrap old nodes
                             if now - knownnodes.knownNodes[stream][node]["lastseen"] > 2419200: # 28 days
-                                shared.needToWriteKownNodesToDisk = True
+                                shared.needToWriteKnownNodesToDisk = True
                                 del knownnodes.knownNodes[stream][node]
+                                continue
+                            # scrap old nodes with low rating
+                            if now - knownnodes.knownNodes[stream][node]["lastseen"] > 10800 and knownnodes.knownNodes[stream][node]["rating"] <= knownnodes.knownNodesForgetRating:
+                                shared.needToWriteKnownNodesToDisk = True
+                                del knownnodes.knownNodes[stream][node]
+                                continue
                         except TypeError:
                             print "Error in %s" % (str(node))
+                    keys = []
 
             # Let us write out the knowNodes to disk if there is anything new to write out.
             if shared.needToWriteKnownNodesToDisk:
@@ -114,14 +120,14 @@ class singleCleaner(threading.Thread, StoppableThread):
                     if "Errno 28" in str(err):
                         logger.fatal('(while receiveDataThread knownnodes.needToWriteKnownNodesToDisk) Alert: Your disk or data storage volume is full. ')
                         queues.UISignalQueue.put(('alert', (tr._translate("MainWindow", "Disk full"), tr._translate("MainWindow", 'Alert: Your disk or data storage volume is full. Bitmessage will now exit.'), True)))
-                        if shared.daemon:
+                        if shared.thisapp.daemon:
                             os._exit(0)
                 shared.needToWriteKnownNodesToDisk = False
 
-            # clear download queues
-            for thread in threading.enumerate():
-                if thread.isAlive() and hasattr(thread, 'downloadQueue'):
-                    thread.downloadQueue.clear()
+#            # clear download queues
+#            for thread in threading.enumerate():
+#                if thread.isAlive() and hasattr(thread, 'downloadQueue'):
+#                    thread.downloadQueue.clear()
 
             # inv/object tracking
             for connection in BMConnectionPool().inboundConnections.values() + BMConnectionPool().outboundConnections.values():
@@ -136,6 +142,8 @@ class singleCleaner(threading.Thread, StoppableThread):
                 except KeyError:
                     pass
             # TODO: cleanup pending upload / download
+
+            gc.collect()
 
             if state.shutdown == 0:
                 self.stop.wait(singleCleaner.cycleLength)

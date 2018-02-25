@@ -20,6 +20,7 @@ BMConfigDefaults = {
     },
     "network": {
         "bind": '',
+        "dandelion": 90,
     },
     "inventory": {
         "storage": "sqlite",

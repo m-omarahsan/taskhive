@@ -5,15 +5,16 @@ import time
 import asyncore_pollchoose as asyncore
 from debug import logger
 from helper_threading import BusyError, nonBlocking
+import state
 
 class AdvancedDispatcher(asyncore.dispatcher):
-    _buf_len = 2097152 # 2MB
+    _buf_len = 131072 # 128kB
 
     def __init__(self, sock=None):
         if not hasattr(self, '_map'):
             asyncore.dispatcher.__init__(self, sock)
-        self.read_buf = b""
-        self.write_buf = b""
+        self.read_buf = bytearray()
+        self.write_buf = bytearray()
         self.state = "init"
         self.lastTx = time.time()
         self.sentBytes = 0
@@ -25,30 +26,42 @@ class AdvancedDispatcher(asyncore.dispatcher):
 
     def append_write_buf(self, data):
         if data:
-            with self.writeLock:
-                self.write_buf += data
+            if isinstance(data, list):
+                with self.writeLock:
+                    for chunk in data:
+                        self.write_buf.extend(chunk)
+            else:
+                with self.writeLock:
+                    self.write_buf.extend(data)
 
     def slice_write_buf(self, length=0):
         if length > 0:
             with self.writeLock:
-                self.write_buf = self.write_buf[length:]
+                if length >= len(self.write_buf):
+                    del self.write_buf[:]
+                else:
+                    del self.write_buf[0:length]
 
     def slice_read_buf(self, length=0):
         if length > 0:
             with self.readLock:
-                self.read_buf = self.read_buf[length:]
+                if length >= len(self.read_buf):
+                    del self.read_buf[:]
+                else:
+                    del self.read_buf[0:length]
 
     def process(self):
-        if not self.connected:
-            return False
-        while True:
+        while self.connected and not state.shutdown:
             try:
                 with nonBlocking(self.processingLock):
+                    if not self.connected or state.shutdown:
+                        break
                     if len(self.read_buf) < self.expectBytes:
                         return False
-                    if getattr(self, "state_" + str(self.state))() is False:
+                    if not getattr(self, "state_" + str(self.state))():
                         break
             except AttributeError:
+                logger.error("Unknown state %s", self.state, exc_info=True)
                 raise
             except BusyError:
                 return False
@@ -62,22 +75,24 @@ class AdvancedDispatcher(asyncore.dispatcher):
     def writable(self):
         self.uploadChunk = AdvancedDispatcher._buf_len
         if asyncore.maxUploadRate > 0:
-            self.uploadChunk = asyncore.uploadBucket
+            self.uploadChunk = int(asyncore.uploadBucket)
         self.uploadChunk = min(self.uploadChunk, len(self.write_buf))
         return asyncore.dispatcher.writable(self) and \
-                (self.connecting or self.uploadChunk > 0)
+                (self.connecting or (self.connected and self.uploadChunk > 0))
 
     def readable(self):
         self.downloadChunk = AdvancedDispatcher._buf_len
         if asyncore.maxDownloadRate > 0:
-            self.downloadChunk = asyncore.downloadBucket
+            self.downloadChunk = int(asyncore.downloadBucket)
         try:
             if self.expectBytes > 0 and not self.fullyEstablished:
                 self.downloadChunk = min(self.downloadChunk, self.expectBytes - len(self.read_buf))
+                if self.downloadChunk < 0:
+                    self.downloadChunk = 0
         except AttributeError:
             pass
         return asyncore.dispatcher.readable(self) and \
-                (self.connecting or self.downloadChunk > 0)
+                (self.connecting or self.accepting or (self.connected and self.downloadChunk > 0))
 
     def handle_read(self):
         self.lastTx = time.time()
@@ -85,7 +100,7 @@ class AdvancedDispatcher(asyncore.dispatcher):
         self.receivedBytes += len(newData)
         asyncore.update_received(len(newData))
         with self.readLock:
-            self.read_buf += newData
+            self.read_buf.extend(newData)
 
     def handle_write(self):
         self.lastTx = time.time()
@@ -108,7 +123,9 @@ class AdvancedDispatcher(asyncore.dispatcher):
         return False
 
     def handle_close(self):
-        self.read_buf = b""
-        self.write_buf = b""
-        self.state = "close"
-        asyncore.dispatcher.close(self)
+        with self.readLock:
+            self.read_buf = bytearray()
+        with self.writeLock:
+            self.write_buf = bytearray()
+        self.set_state("close")
+        self.close()
